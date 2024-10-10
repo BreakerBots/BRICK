@@ -20,6 +20,7 @@ import edu.wpi.first.networktables.BooleanSubscriber;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.util.WPILibVersion;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -28,9 +29,11 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.driverstation.gamepad.controllers.BreakerXboxController;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl;
+import frc.robot.BreakerLib.util.BreakerLibVersion;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
 import frc.robot.BreakerLib.util.loging.BreakerLog.Metadata;
 import frc.robot.BreakerLib.util.math.functions.BreakerLinearizedConstrainedExponential;
+import frc.robot.Constants.*;
 import frc.robot.subsystems.Drivetrain;
 
 public class RobotContainer {
@@ -44,8 +47,8 @@ public class RobotContainer {
     if (RobotBase.isReal()) {
       BreakerLog.setPdh(new PowerDistribution(0, ModuleType.kRev));
     }
-    // BreakerLog.setEnabled(true);
-    // BreakerLog.logMetadata(new Metadata("Typhoon", 2024, "Roman Abrahamson"));
+    BreakerLog.setEnabled(true);
+    BreakerLog.logMetadata(new Metadata("Brick", 2024, "Roman Abrahamson", GeneralConstants.GIT_INFO));
   }
 
   private void configureControls() {
@@ -69,7 +72,7 @@ public class RobotContainer {
             .map(new BreakerLinearizedConstrainedExponential(0.0, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
-    drivetrain.setDefaultCommand(new BreakerSwerveTeleopControl(drivetrain, translationalTheta, translationalMag, translationalTheta, HEADING_COMPENSATION_CONFIG));
+    drivetrain.setDefaultCommand(new BreakerSwerveTeleopControl(drivetrain, driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
 
     
 

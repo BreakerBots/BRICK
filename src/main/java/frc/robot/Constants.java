@@ -23,6 +23,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.units.Velocity;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
+import frc.robot.BreakerLib.util.loging.BreakerLog.GitInfo;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -36,6 +37,7 @@ public final class Constants {
 
   public static class GeneralConstants {
     public static final String DRIVE_CANIVORE_NAME = "drive_canivore";
+    public static final GitInfo GIT_INFO = new GitInfo(BuildConstants.MAVEN_NAME, BuildConstants.GIT_REVISION, BuildConstants.GIT_SHA, BuildConstants.GIT_DATE, BuildConstants.GIT_BRANCH, BuildConstants.BUILD_DATE, BuildConstants.DIRTY);
   }
   
   public static class OperatorConstants {

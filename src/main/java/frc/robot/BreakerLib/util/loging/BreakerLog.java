@@ -25,7 +25,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.util.WPILibVersion;
-// import frc.robot.BuildConstants;
+import frc.robot.BuildConstants;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.physics.BreakerVector3;
 import frc.robot.BreakerLib.physics.ChassisAccels;
@@ -152,10 +152,28 @@ public class BreakerLog extends DogLog {
         String buildDate,
         int dirty
     ) {
-        // public Metadata(String robotName, int year, String authors) {
-        //     this(robotName, year, authors, WPILibVersion.Version, BreakerLibVersion.version, BuildConstants.MAVEN_NAME, BuildConstants.GIT_REVISION, BuildConstants.GIT_SHA, BuildConstants.GIT_DATE, BuildConstants.GIT_BRANCH, BuildConstants.BUILD_DATE, BuildConstants.DIRTY);
-        // }
+        public Metadata(
+            String robotName, 
+            int year, 
+            String authors,
+            GitInfo gitInfo
+        ) {
+            this(robotName, year, authors, WPILibVersion.Version, BreakerLibVersion.version, BuildConstants.MAVEN_NAME, gitInfo.gitRevision, gitInfo.gitSHA, gitInfo.gitDate, gitInfo.gitBranch, gitInfo.buildDate, gitInfo.dirty);
+        }
+
+        
     }
+
+    public record GitInfo (
+            String mavenName,
+            int gitRevision,
+            String gitSHA,
+            String gitDate,
+            String gitBranch,
+            String buildDate,
+            int dirty
+        ) {
+        }
 
     public static void updateDynamicPublishNT() {
         boolean shouldPub = DriverStation.isDSAttached() && !DriverStation.isFMSAttached();
