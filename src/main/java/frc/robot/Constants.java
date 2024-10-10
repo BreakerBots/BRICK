@@ -39,7 +39,9 @@ public final class Constants {
   }
   
   public static class OperatorConstants {
-    public static final int kDriverControllerPort = 0;
+    public static final int CONTROLLER_PORT= 0;
+    public static final double TRANSLATIONAL_DEADBAND = 0.0;
+     public static final double ROTATIONAL_DEADBAND = 0.0;
   }
 
   public static class DriveConstants {
