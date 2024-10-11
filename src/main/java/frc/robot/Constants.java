@@ -54,13 +54,13 @@ public final class Constants {
       // The steer motor uses any SwerveModule.SteerRequestType control request with the
       // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
       private static final Slot0Configs steerGains = new Slot0Configs()
-          .withKP(100).withKI(0).withKD(0.35)
-          .withKS(0).withKV(1.5).withKA(0);
+          .withKP(5.0).withKI(0).withKD(0.0)
+          .withKS(0).withKV(0).withKA(0);
       // When using closed-loop control, the drive motor uses the control
       // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
       private static final Slot0Configs driveGains = new Slot0Configs()
-          .withKP(2.04).withKI(0).withKD(0)
-          .withKS(0.36).withKV(1.74).withKA(0);
+          .withKP(0.0).withKI(0).withKD(0)
+          .withKS(0.0).withKV(1.0).withKA(0);
 
       // The closed-loop output type to use for the steer motors;
       // This affects the PID/FF gains for the steer motors
@@ -132,7 +132,7 @@ public final class Constants {
               .withDriveInertia(kDriveInertia)
               .withSteerFrictionVoltage(kSteerFrictionVoltage)
               .withDriveFrictionVoltage(kDriveFrictionVoltage)
-              .withFeedbackSource(SteerFeedbackType.FusedCANcoder)
+              .withFeedbackSource(SteerFeedbackType.RemoteCANcoder)
               .withCouplingGearRatio(kCoupleRatio)
               .withSteerMotorInverted(kSteerMotorReversed)
               .withDriveMotorInitialConfigs(driveInitialConfigs)
@@ -146,14 +146,14 @@ public final class Constants {
       private static final int kFrontLeftDriveMotorId = 10;
       private static final int kFrontLeftSteerMotorId = 11;
       private static final int kFrontLeftEncoderId = 20;
-      private static final double kFrontLeftEncoderOffset = -0.223388671875;
+      private static final double kFrontLeftEncoderOffset = 0.185791015625;
       private static final Translation2d kFrontLeftModulePosition = new Translation2d(0.314325, 0.314325);
 
       // Front Right
       private static final int kFrontRightDriveMotorId = 12;
       private static final int kFrontRightSteerMotorId = 13;
       private static final int kFrontRightEncoderId = 21;
-      private static final double kFrontRightEncoderOffset = -0.06591796875;
+      private static final double kFrontRightEncoderOffset = -0.098388671875;
       private static final Translation2d kFrontRightModulePosition = new Translation2d(0.314325, -0.314325);
 
 
@@ -161,14 +161,14 @@ public final class Constants {
       private static final int kBackLeftDriveMotorId = 14;
       private static final int kBackLeftSteerMotorId = 15;
       private static final int kBackLeftEncoderId = 22;
-      private static final double kBackLeftEncoderOffset = -0.325439453125;
+      private static final double kBackLeftEncoderOffset = 0.3076171875;
       private static final Translation2d kBackLeftModulePosition = new Translation2d(-0.314325, 0.314325);
 
       // Back Right
       private static final int kBackRightDriveMotorId = 16;
       private static final int kBackRightSteerMotorId = 17;
       private static final int kBackRightEncoderId = 23;
-      private static final double kBackRightEncoderOffset = 0.412353515625;
+      private static final double kBackRightEncoderOffset = -0.302978515625;
       private static final Translation2d kBackRightModulePosition = new Translation2d(-0.314325, -0.314325);
 
 

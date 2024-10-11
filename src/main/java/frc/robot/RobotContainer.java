@@ -45,15 +45,15 @@ public class RobotContainer {
     configureControls();
     BreakerLog.setOptions(new DogLogOptions(true, false, true, true, 2000)); 
     if (RobotBase.isReal()) {
-      BreakerLog.setPdh(new PowerDistribution(0, ModuleType.kRev));
+      BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
     }
     BreakerLog.setEnabled(true);
     BreakerLog.logMetadata(new Metadata("Brick", 2024, "Roman Abrahamson", GeneralConstants.GIT_INFO));
   }
 
   private void configureControls() {
-    driverX = controller.getLeftThumbstick().getStreamY();
-    driverY = controller.getLeftThumbstick().getStreamX();
+    driverX = controller.getLeftThumbstick().getStreamX();
+    driverY = controller.getLeftThumbstick().getStreamY();
     BreakerInputStream translationalMag =
         BreakerInputStream.hypot(driverX, driverY)
             .clamp(1.0)
@@ -72,7 +72,7 @@ public class RobotContainer {
             .map(new BreakerLinearizedConstrainedExponential(0.0, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
-    drivetrain.setDefaultCommand(new BreakerSwerveTeleopControl(drivetrain, driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
+    drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
 
     
 
