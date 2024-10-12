@@ -42,20 +42,20 @@ public final class Constants {
   
   public static class OperatorConstants {
     public static final int CONTROLLER_PORT= 0;
-    public static final double TRANSLATIONAL_DEADBAND = 0.0;
-     public static final double ROTATIONAL_DEADBAND = 0.0;
+    public static final double TRANSLATIONAL_DEADBAND = 0.075;
+     public static final double ROTATIONAL_DEADBAND = 0.075;
   }
 
   public static class DriveConstants {
-        public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.001), new PIDConstants(2.8, 0, 0));
+        public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.001), new PIDConstants(0, 0, 0));//2.8
         public static final Measure<Velocity<Distance>> MAXIMUM_TRANSLATIONAL_VELOCITY = Units.MetersPerSecond.of(4.5);
         public static final Measure<Velocity<Angle>> MAXIMUM_ROTATIONAL_VELOCITY = Units.RadiansPerSecond.of(9.5);
       // Both sets of gains need to be tuned to your individual robot.
       // The steer motor uses any SwerveModule.SteerRequestType control request with the
       // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
       private static final Slot0Configs steerGains = new Slot0Configs()
-          .withKP(5.0).withKI(0).withKD(0.0)
-          .withKS(0).withKV(0).withKA(0);
+          .withKP(10.0).withKI(0).withKD(0.0)
+          .withKS(0.0).withKV(1.5).withKA(0);
       // When using closed-loop control, the drive motor uses the control
       // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
       private static final Slot0Configs driveGains = new Slot0Configs()
@@ -140,7 +140,7 @@ public final class Constants {
               .withCANcoderInitialConfigs(cancoderInitialConfigs);
 
       private static final boolean kInvertLeftSide = true;
-      private static final boolean kInvertRightSide = false;
+      private static final boolean kInvertRightSide = true;
 
       // Front Left
       private static final int kFrontLeftDriveMotorId = 10;
@@ -153,7 +153,8 @@ public final class Constants {
       private static final int kFrontRightDriveMotorId = 12;
       private static final int kFrontRightSteerMotorId = 13;
       private static final int kFrontRightEncoderId = 21;
-      private static final double kFrontRightEncoderOffset = -0.098388671875;
+      private static final double kFrontRightEncoderOffset = -0.098388671875 + 0.5;
+
       private static final Translation2d kFrontRightModulePosition = new Translation2d(0.314325, -0.314325);
 
 
@@ -168,7 +169,7 @@ public final class Constants {
       private static final int kBackRightDriveMotorId = 16;
       private static final int kBackRightSteerMotorId = 17;
       private static final int kBackRightEncoderId = 23;
-      private static final double kBackRightEncoderOffset = -0.302978515625;
+      private static final double kBackRightEncoderOffset = -0.302978515625 + 0.5;
       private static final Translation2d kBackRightModulePosition = new Translation2d(-0.314325, -0.314325);
 
 
