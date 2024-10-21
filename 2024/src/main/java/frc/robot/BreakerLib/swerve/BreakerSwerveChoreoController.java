@@ -1,4 +1,4 @@
-package frc.robot.BreakerLib.auto;
+package frc.robot.BreakerLib.swerve;
 
 import choreo.Choreo.ControlFunction;
 import choreo.trajectory.SwerveSample;
@@ -8,12 +8,12 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 
-public class BreakerSwerveAutoController implements ControlFunction<SwerveSample> {
+public class BreakerSwerveChoreoController implements ControlFunction<SwerveSample> {
     private final PIDController xController;
     private final PIDController yController;
     private final PIDController thetaController;
 
-    public BreakerSwerveAutoController(
+    public BreakerSwerveChoreoController(
         PIDController xController,
         PIDController yController,
         PIDController thetaController) {

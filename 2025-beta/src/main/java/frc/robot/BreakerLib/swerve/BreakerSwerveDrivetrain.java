@@ -11,21 +11,16 @@ import java.util.function.Supplier;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModule;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
-import com.pathplanner.lib.auto.AutoBuilder;
+import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.commands.FollowPathCommand;
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
-import com.pathplanner.lib.util.PIDConstants;
-import com.pathplanner.lib.util.ReplanningConfig;
+import com.pathplanner.lib.config.PIDConstants;
 
 import choreo.Choreo;
-import choreo.Choreo.ChoreoTrajectoryCache;
 import choreo.auto.AutoFactory;
-import choreo.auto.AutoFactory.ChoreoAutoBindings;
+import choreo.auto.AutoFactory.AutoBindings;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import edu.wpi.first.math.Matrix;
@@ -45,7 +40,6 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.BreakerLib.auto.BreakerSwerveAutoController;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.ChassisAccels;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
@@ -89,7 +83,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     m_telemetryFunction = this::telemetryCallbackWrapperFunction;
     double tempCommonMaxModuleSpeed = Double.MAX_VALUE;
     for (SwerveModuleConstants modConst : modules) {
-      tempCommonMaxModuleSpeed = Math.min(tempCommonMaxModuleSpeed, modConst.SpeedAt12VoltsMps); //@TODO this uses the 12v nominal speed because a direct max speed is not yet exposed
+      tempCommonMaxModuleSpeed = Math.min(tempCommonMaxModuleSpeed, modConst.SpeedAt12Volts); //@TODO this uses the 12v nominal speed because a direct max speed is not yet exposed
     }
     commonMaxModuleSpeed = tempCommonMaxModuleSpeed;
     if (Utils.isSimulation()) {
@@ -100,11 +94,11 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
   
   private void telemetryCallbackWrapperFunction(SwerveDriveState state) {
-    chassisAccels = ChassisAccels.fromDeltaSpeeds(prevChassisSpeeds, state.speeds, state.OdometryPeriod);
-    prevChassisSpeeds = state.speeds;
+    chassisAccels = ChassisAccels.fromDeltaSpeeds(prevChassisSpeeds, state.Speeds, state.OdometryPeriod);
+    prevChassisSpeeds = state.Speeds;
     
     BreakerLog.log("SwerveDrivetrain/State/Pose", state.Pose);
-    BreakerLog.log("SwerveDrivetrain/State/Speeds", state.speeds);
+    BreakerLog.log("SwerveDrivetrain/State/Speeds", state.Speeds);
     BreakerLog.log("SwerveDrivetrain/State/Accels", chassisAccels);
     BreakerLog.log("SwerveDrivetrain/State/ModuleStates", state.ModuleStates);
     BreakerLog.log("SwerveDrivetrain/State/TargetModuleStates", state.ModuleTargets);
@@ -118,7 +112,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   private void lowFrequencyTelemetry() {
-    BreakerLog.log("SwerveDrivetrain/Modules", Modules);
+    BreakerLog.log("SwerveDrivetrain/Modules", getModules());
     BreakerLog.log("SwerveDrivetrain/Pigeon2", getPigeon2());
   }
   
@@ -136,19 +130,19 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    */
   public void registerTelemetry(Consumer<SwerveDriveState> telemetryFunction) {
     try {
-        m_stateLock.writeLock().lock();
+        m_stateLock.lock();
         userTelemetryCallback = telemetryFunction;
     } finally {
-        m_stateLock.writeLock().unlock();
+        m_stateLock.unlock();
     }
   }
 
   public ChassisAccels getChassisAccels() {
     try {
-      m_stateLock.writeLock().lock();
+      m_stateLock.lock();
       return chassisAccels;
     } finally {
-      m_stateLock.writeLock().unlock();
+      m_stateLock.unlock();
     }
   }
 
@@ -177,8 +171,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       new HolonomicPathFollowerConfig(constants.pathplannerConfig.translationPID,
                                       constants.pathplannerConfig.rotationPID,
                                       commonMaxModuleSpeed,
-                                      driveBaseRadius,
-                                      constants.pathplannerConfig.replanningConfig),
+                                      driveBaseRadius),
       () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
       this); // Subsystem for requirements
   }
@@ -190,7 +183,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     autoFactory = Choreo.createAutoFactory(
       this, 
       () -> this.getState().Pose, 
-      new BreakerSwerveAutoController(x, y, r), 
+      new BreakerSwerveChoreoController(x, y, r), 
       (speeds)->this.setControl(autoRequest.withSpeeds(speeds)), 
       () -> {return DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red;}, 
       constants.choreoConfig.autoBindings, 
@@ -261,8 +254,8 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     }
 
     @Override
-    public BreakerSwerveDrivetrainConstants withCANbusName(String name) {
-      this.CANbusName = name;
+    public BreakerSwerveDrivetrainConstants withCANBusName(String name) {
+      this.CANBusName = name;
       return this;
     }
 
@@ -311,7 +304,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class ChoreoConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public ChoreoAutoBindings autoBindings = new ChoreoAutoBindings();
+      public AutoBindings autoBindings = new AutoBindings();
       public ChoreoConfig() {}
 
       public ChoreoConfig withTranslationPID(PIDConstants translationPID) {
@@ -324,7 +317,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         return this;
       }
 
-      public ChoreoConfig withAutoBindings(ChoreoAutoBindings autoBindings) {
+      public ChoreoConfig withAutoBindings(AutoBindings autoBindings) {
         this.autoBindings = autoBindings;
         return this;
       }
@@ -333,7 +326,6 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class PathplannerConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public ReplanningConfig replanningConfig = new ReplanningConfig();
       public PathplannerConfig() {}
 
 
@@ -344,11 +336,6 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
       public PathplannerConfig withRotationPID(PIDConstants rotationPID) {
         this.rotationPID = rotationPID;
-        return this;
-      }
-
-      public PathplannerConfig withReplanningConfig(ReplanningConfig replanningConfig) {
-        this.replanningConfig = replanningConfig;
         return this;
       }
     }
