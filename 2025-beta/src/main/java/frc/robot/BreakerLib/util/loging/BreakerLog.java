@@ -6,6 +6,8 @@ package frc.robot.BreakerLib.util.loging;
 
 import java.util.ArrayList;
 
+import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -14,7 +16,6 @@ import com.ctre.phoenix6.swerve.SwerveModule;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import choreo.trajectory.TrajectorySample;
-import dev.doglog.AdvantageKitCompatibleLogger;
 import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.math.MathUtil;
@@ -26,6 +27,9 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Unit;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.util.WPILibVersion;
 import frc.robot.BuildConstants;
 import frc.robot.BreakerLib.physics.BreakerVector2;
@@ -39,7 +43,7 @@ public class BreakerLog extends DogLog {
 
     public static void log(String key, Measure<?> value) {
         log(key + "/Value", value.magnitude());
-        log(key + "/Unit", value.unit().toString())
+        log(key + "/Units", value.unit().toString());
     }
 
     
@@ -94,7 +98,6 @@ public class BreakerLog extends DogLog {
         log(key + "/Gyro/AnglesRad/Yaw", rot.getZ());
         log(key + "/Gyro/AnglesRad/Pitch", rot.getY());
         log(key + "/Gyro/AnglesRad/Roll", rot.getX());
-        log("", value.getAccelerationX().getValue());
         log(key + "/Gyro/AngleRates/YawRate", Units.degreesToRadians(value.getAngularVelocityZWorld().getValueAsDouble()));
         log(key + "/Gyro/AngleRates/PitchRate", Units.degreesToRadians(value.getAngularVelocityYWorld().getValueAsDouble()));
         log(key + "/Gyro/AngleRates/RollRate", Units.degreesToRadians(value.getAngularVelocityXWorld().getValueAsDouble()));
@@ -115,19 +118,23 @@ public class BreakerLog extends DogLog {
         }
     }
 
-    // public static void log(String key, EstimatedRobotPose value) {
-    //     log(key + "/Pose", value.estimatedPose);
-    //     log(key + "", value.targetsUsed);
-    //     log(key + )
-    // }
+    public static void log(String key, CANBus value) {
+        log(key + "/Name", value.getName());
+        log(key + "/IsNetworkFD", value.isNetworkFD());
+        CANBusStatus status = value.getStatus();
+        log(key + "/Status/BusUtilization", status.BusUtilization);
+        log(key + "/Status/BusOffCount", status.BusOffCount);
+        log(key + "/Status/ReceiveErrorCount", status.REC);
+        log(key + "/Status/TransmitErrorCount", status.TEC);
+        log(key + "/Status/TransmitBufferFullCount", status.TxFullCount);
+    }
 
-    // public static void log(String key, PhotonTrackedTarget value) {
-    //     log(key + "/Yaw", value.yaw);
-    //     log(key + )
-    // }
+    public static void addCANBus(CANBus value) {
+        
+    }
     
     public static void logMetadata(String key, String value) {
-        AdvantageKitCompatibleLogger.recordMetadata(key, value);
+        log("/Metadata/" + key, value);
     }
 
     public static void logMetadata(Metadata metadata) {
@@ -187,4 +194,6 @@ public class BreakerLog extends DogLog {
         boolean shouldPub = DriverStation.isDSAttached() && !DriverStation.isFMSAttached();
         setOptions(options.withNtPublish(shouldPub));
     }
+
+   
 }

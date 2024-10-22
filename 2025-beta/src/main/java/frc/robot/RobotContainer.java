@@ -9,9 +9,6 @@ import static frc.robot.Constants.DriveConstants.HEADING_COMPENSATION_CONFIG;
 import java.io.InputStream;
 import java.util.function.BooleanSupplier;
 
-import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
-
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -43,7 +40,7 @@ public class RobotContainer {
   private BreakerInputStream driverX, driverY, driverOmega;
   public RobotContainer() {
     configureControls();
-    BreakerLog.setOptions(new DogLogOptions(true, false, true, true, 2000)); 
+    BreakerLog.setOptions(new DogLogOptions(true, false, true, true, true, 2000)); 
     if (RobotBase.isReal()) {
       BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
     }

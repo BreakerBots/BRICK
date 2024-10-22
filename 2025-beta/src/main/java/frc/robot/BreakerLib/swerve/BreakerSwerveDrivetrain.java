@@ -6,6 +6,8 @@ package frc.robot.BreakerLib.swerve;
 
 import static java.lang.Math.abs;
 
+import java.sql.Driver;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -13,10 +15,17 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.swerve.jni.SwerveJNI;
+import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.util.DriveFeedforwards;
 
 import choreo.Choreo;
 import choreo.auto.AutoFactory;
@@ -25,6 +34,7 @@ import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
@@ -33,8 +43,11 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -53,7 +66,6 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   protected double lastSimTime;
   protected final double commonMaxModuleSpeed;
   protected final BreakerSwerveDrivetrainConstants constants;
-  protected final SwerveRequest.ApplyChassisSpeeds autoRequest = new SwerveRequest.ApplyChassisSpeeds();
   protected Consumer<SwerveDriveState> userTelemetryCallback = null;
   /* Keep track if we've ever applied the operator perspective before or not */
   protected boolean hasAppliedOperatorPerspective = false;
@@ -151,7 +163,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   public ChassisSpeeds getCurrentFieldRelitiveChassisSpeeds() {
-    return  BreakerMath.fromRobotRelativeSpeeds(getState().speeds, getState().Pose.getRotation());
+    return  BreakerMath.fromRobotRelativeSpeeds(getState().Speeds, getState().Pose.getRotation());
   }
 
   public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
@@ -163,15 +175,23 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     for (var moduleLocation : m_moduleLocations) {
         driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
     }
-    AutoBuilder.configureHolonomic(
+
+    SwerveRequest.ApplyChassisSpeeds request = new SwerveRequest.ApplyChassisSpeeds();
+    request.DriveRequestType = DriveRequestType.Velocity;
+    BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
+      request.Speeds = speeds;
+      request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
+      request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
+      setControl(request);
+    };
+
+    AutoBuilder.configure(
       ()->this.getState().Pose, // Supplier of current robot pose
       this::seedFieldRelative,  // Consumer for seeding pose against auto
       this::getCurrentChassisSpeeds,
-      (speeds)->this.setControl(autoRequest.withSpeeds(speeds)), // Consumer of ChassisSpeeds to drive the robot
-      new HolonomicPathFollowerConfig(constants.pathplannerConfig.translationPID,
-                                      constants.pathplannerConfig.rotationPID,
-                                      commonMaxModuleSpeed,
-                                      driveBaseRadius),
+      output, // Consumer of ChassisSpeeds to drive the robot
+      new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
+      constants.pathplannerConfig.robotConfig,
       () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
       this); // Subsystem for requirements
   }
@@ -183,8 +203,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     autoFactory = Choreo.createAutoFactory(
       this, 
       () -> this.getState().Pose, 
-      new BreakerSwerveChoreoController(x, y, r), 
-      (speeds)->this.setControl(autoRequest.withSpeeds(speeds)), 
+      new BreakerSwerveChoreoController(this, x, y, r),
       () -> {return DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red;}, 
       constants.choreoConfig.autoBindings, 
       this::logChoreoPath);
@@ -215,8 +234,9 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   public Rotation2d getOperatorForwardDirection() {
-    return m_operatorForwardDirection;
+    return m_controlParams.operatorForwardDirection;
   }
+
 
   public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, HeadingCompensationConfig headingCompensationConfig) {
     return new BreakerSwerveTeleopControl(this, x, y, omega, headingCompensationConfig);
@@ -326,7 +346,18 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class PathplannerConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public PathplannerConfig() {}
+      public RobotConfig robotConfig = getRobotConfigFromGUI();
+      public PathplannerConfig() {
+      }
+
+      private RobotConfig getRobotConfigFromGUI() {
+        try {
+          return RobotConfig.fromGUISettings();
+        } catch(Exception e) {
+          DriverStation.reportError("Failed to load PathPlanner RobotConfig from GUI", true);
+          return null;
+        }
+      }
 
 
       public PathplannerConfig withTranslationPID(PIDConstants translationPID) {
@@ -336,6 +367,11 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
       public PathplannerConfig withRotationPID(PIDConstants rotationPID) {
         this.rotationPID = rotationPID;
+        return this;
+      }
+
+      public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
+        this.robotConfig = robotConfig;
         return this;
       }
     }

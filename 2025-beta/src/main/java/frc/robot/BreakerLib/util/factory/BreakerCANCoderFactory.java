@@ -4,39 +4,45 @@
 
 package frc.robot.BreakerLib.util.factory;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.signals.AbsoluteSensorRangeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 
+import edu.wpi.first.units.measure.Angle;
+
 /** Factory for producing CANcoders. */
 public class BreakerCANCoderFactory {
 
     /**
      */
-    public static CANcoder createCANCoder(int deviceID, AbsoluteSensorRangeValue absoluteSensorRange, double absoluteOffsetRotations, SensorDirectionValue encoderDirection) {
+    public static CANcoder createCANCoder(int deviceID, AbsoluteSensorRangeValue absoluteSensorRange, Angle absoluteOffset, SensorDirectionValue encoderDirection) {
         
-        return createCANCoder(deviceID, "rio", absoluteSensorRange, absoluteOffsetRotations, encoderDirection);
+        return createCANCoder(deviceID, "rio", absoluteSensorRange, absoluteOffset, encoderDirection);
     }
 
     /**
      */
     public static CANcoder createCANCoder(int deviceID, String busName,
-        AbsoluteSensorRangeValue absoluteSensorRange, double absoluteOffsetRotations, SensorDirectionValue encoderDirection) {
+        AbsoluteSensorRangeValue absoluteSensorRange, Angle absoluteOffset, SensorDirectionValue encoderDirection) {
         CANcoder encoder = new CANcoder(deviceID, busName);
-        configExistingCANCoder(encoder, absoluteSensorRange, absoluteOffsetRotations, encoderDirection);
+        configExistingCANCoder(encoder, absoluteSensorRange, absoluteOffset, encoderDirection);
         return encoder;
+    }
+
+    public static CANcoder createCANCoder(int deviceID, CANBus canBus, AbsoluteSensorRangeValue absoluteSensorRange, Angle absoluteOffset, SensorDirectionValue encoderDirection) {
+        return createCANCoder(deviceID, canBus.getName(), absoluteSensorRange, absoluteOffset, encoderDirection);
     }
 
     /**
      */
-    public static void configExistingCANCoder(CANcoder encoder, AbsoluteSensorRangeValue absoluteSensorRange, double absoluteOffsetRotations, SensorDirectionValue encoderDirection) {
+    public static void configExistingCANCoder(CANcoder encoder, AbsoluteSensorRangeValue absoluteSensorRange, Angle absoluteOffset, SensorDirectionValue encoderDirection) {
         CANcoderConfiguration config =  new CANcoderConfiguration();
         config.MagnetSensor.AbsoluteSensorRange = absoluteSensorRange;
-        config.MagnetSensor.MagnetOffset = absoluteOffsetRotations;
+        config.MagnetSensor.withMagnetOffset(absoluteOffset);
         config.MagnetSensor.SensorDirection = encoderDirection;
-        StatusCode cod = encoder.getConfigurator().apply(config);    
-        //BreakerPhoenix6Util.checkStatusCode(encoder.getConfigurator().apply(config),  " CANcoder " + encoder.getDeviceID() + " general config fail ");
+        encoder.getConfigurator().apply(config);    
     }
 }
