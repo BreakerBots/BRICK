@@ -54,13 +54,13 @@ public final class Constants {
       // The steer motor uses any SwerveModule.SteerRequestType control request with the
       // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
       private static final Slot0Configs steerGains = new Slot0Configs()
-          .withKP(10.0).withKI(0).withKD(0.0)
-          .withKS(0.0).withKV(1.5).withKA(0);
+      .withKP(100).withKI(0).withKD(0.35)
+      .withKS(0).withKV(1.5).withKA(0);
       // When using closed-loop control, the drive motor uses the control
       // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
       private static final Slot0Configs driveGains = new Slot0Configs()
-          .withKP(0.0).withKI(0).withKD(0)
-          .withKS(0.0).withKV(1.0).withKA(0);
+          .withKP(2.04).withKI(0).withKD(0)
+          .withKS(0.36).withKV(1.74).withKA(0);
 
       // The closed-loop output type to use for the steer motors;
       // This affects the PID/FF gains for the steer motors
@@ -132,7 +132,7 @@ public final class Constants {
               .withDriveInertia(kDriveInertia)
               .withSteerFrictionVoltage(kSteerFrictionVoltage)
               .withDriveFrictionVoltage(kDriveFrictionVoltage)
-              .withFeedbackSource(SteerFeedbackType.RemoteCANcoder)
+              .withFeedbackSource(SteerFeedbackType.FusedCANcoder)
               .withCouplingGearRatio(kCoupleRatio)
               .withSteerMotorInverted(kSteerMotorReversed)
               .withDriveMotorInitialConfigs(driveInitialConfigs)
