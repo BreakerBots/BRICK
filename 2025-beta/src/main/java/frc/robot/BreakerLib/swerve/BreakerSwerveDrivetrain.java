@@ -7,6 +7,7 @@ package frc.robot.BreakerLib.swerve;
 import static java.lang.Math.abs;
 
 import java.sql.Driver;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -171,29 +172,31 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   private void configPathPlanner() {
-    double driveBaseRadius = 0;
-    for (var moduleLocation : m_moduleLocations) {
-        driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
+    if (constants.pathplannerConfig.robotConfig.isPresent()) {
+      double driveBaseRadius = 0;
+      for (var moduleLocation : m_moduleLocations) {
+          driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
+      }
+
+      SwerveRequest.ApplyChassisSpeeds request = new SwerveRequest.ApplyChassisSpeeds();
+      request.DriveRequestType = DriveRequestType.Velocity;
+      BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
+        request.Speeds = speeds;
+        request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
+        request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
+        setControl(request);
+      };
+
+      AutoBuilder.configure(
+        ()->this.getState().Pose, // Supplier of current robot pose
+        this::seedFieldRelative,  // Consumer for seeding pose against auto
+        this::getCurrentChassisSpeeds,
+        output, // Consumer of ChassisSpeeds to drive the robot
+        new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
+        constants.pathplannerConfig.robotConfig.get(),
+        () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
+        this); // Subsystem for requirements
     }
-
-    SwerveRequest.ApplyChassisSpeeds request = new SwerveRequest.ApplyChassisSpeeds();
-    request.DriveRequestType = DriveRequestType.Velocity;
-    BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
-      request.Speeds = speeds;
-      request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
-      request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
-      setControl(request);
-    };
-
-    AutoBuilder.configure(
-      ()->this.getState().Pose, // Supplier of current robot pose
-      this::seedFieldRelative,  // Consumer for seeding pose against auto
-      this::getCurrentChassisSpeeds,
-      output, // Consumer of ChassisSpeeds to drive the robot
-      new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
-      constants.pathplannerConfig.robotConfig,
-      () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
-      this); // Subsystem for requirements
   }
 
   private void configChoreo() {
@@ -346,16 +349,16 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class PathplannerConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public RobotConfig robotConfig = getRobotConfigFromGUI();
+      public Optional<RobotConfig> robotConfig = getRobotConfigFromGUI();
       public PathplannerConfig() {
       }
 
-      private RobotConfig getRobotConfigFromGUI() {
+      private Optional<RobotConfig> getRobotConfigFromGUI() {
         try {
-          return RobotConfig.fromGUISettings();
+          return Optional.of(RobotConfig.fromGUISettings());
         } catch(Exception e) {
-          DriverStation.reportError("Failed to load PathPlanner RobotConfig from GUI", true);
-          return null;
+          DriverStation.reportError("Failed to load RobotConfig from PathPlanner GUI", true);
+          return Optional.empty();
         }
       }
 
@@ -371,7 +374,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       }
 
       public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
-        this.robotConfig = robotConfig;
+        this.robotConfig = Optional.of(robotConfig);
         return this;
       }
     }
