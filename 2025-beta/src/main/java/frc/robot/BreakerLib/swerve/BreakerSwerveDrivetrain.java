@@ -57,6 +57,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.ChassisAccels;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
+import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
 import frc.robot.BreakerLib.util.math.BreakerMath;
 
@@ -241,8 +242,8 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
 
-  public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, HeadingCompensationConfig headingCompensationConfig) {
-    return new BreakerSwerveTeleopControl(this, x, y, omega, headingCompensationConfig);
+  public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig teleopControlConfig) {
+    return new BreakerSwerveTeleopControl(this, x, y, omega, teleopControlConfig);
   }
 
   @Override

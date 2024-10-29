@@ -26,11 +26,14 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Unit;
+import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.util.WPILibVersion;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.BuildConstants;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.physics.BreakerVector3;
@@ -40,6 +43,10 @@ import frc.robot.BreakerLib.util.BreakerLibVersion;
 
 /** Add your docs here. */
 public class BreakerLog extends DogLog {
+    private static ArrayList<CANBus> loggedCANBuses = new ArrayList<>();
+    private static Command periodicLogLoop = Commands.run(BreakerLog::periodicLog);
+
+    private BreakerLog 
 
     public static void log(String key, Measure<?> value) {
         log(key + "/Value", value.magnitude());
@@ -51,6 +58,7 @@ public class BreakerLog extends DogLog {
         log(key + "/X", value.getX());
         log(key + "/Y", value.getY());
         log(key + "/Angle", value.getAngle());
+        TimedRobot.
     }
 
     public static void log(String key, BreakerVector3 value) {
@@ -130,7 +138,18 @@ public class BreakerLog extends DogLog {
     }
 
     public static void addCANBus(CANBus value) {
+        loggedCANBuses.add(value);
         
+    }
+
+    private static void logCANBuses() {
+        for (CANBus bus: loggedCANBuses) {
+            log("CanivoreBuses/" + bus.getName(),bus);
+        }
+    }
+
+    private static void periodicLog() {
+        logCANBuses();
     }
     
     public static void logMetadata(String key, String value) {
