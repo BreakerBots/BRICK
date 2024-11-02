@@ -46,7 +46,7 @@ public class BreakerLog extends DogLog {
     private static ArrayList<CANBus> loggedCANBuses = new ArrayList<>();
     private static Command periodicLogLoop = Commands.run(BreakerLog::periodicLog);
 
-    private BreakerLog 
+    //private BreakerLog 
 
     public static void log(String key, Measure<?> value) {
         log(key + "/Value", value.magnitude());
@@ -58,7 +58,7 @@ public class BreakerLog extends DogLog {
         log(key + "/X", value.getX());
         log(key + "/Y", value.getY());
         log(key + "/Angle", value.getAngle());
-        TimedRobot.
+        //TimedRobot.
     }
 
     public static void log(String key, BreakerVector3 value) {

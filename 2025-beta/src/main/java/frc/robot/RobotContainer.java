@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.driverstation.gamepad.controllers.BreakerXboxController;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl;
+import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
 import frc.robot.BreakerLib.util.BreakerLibVersion;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
 import frc.robot.BreakerLib.util.loging.BreakerLog.Metadata;
@@ -69,7 +70,8 @@ public class RobotContainer {
             .map(new BreakerLinearizedConstrainedExponential(0.0, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
-    drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
+    TeleopControlConfig config = new TeleopControlConfig();
+    drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, config.withHeadingCompensation(HEADING_COMPENSATION_CONFIG)));
 
     
 
