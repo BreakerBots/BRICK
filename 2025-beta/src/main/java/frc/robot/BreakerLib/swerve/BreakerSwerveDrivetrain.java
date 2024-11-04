@@ -8,6 +8,7 @@ import static java.lang.Math.abs;
 
 import java.sql.Driver;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -73,8 +74,12 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   protected boolean hasAppliedOperatorPerspective = false;
   protected ChassisSpeeds prevChassisSpeeds = new ChassisSpeeds();
   protected ChassisAccels chassisAccels = new ChassisAccels();
+  protected Rotation2d fieldDirection = new Rotation2d();
 
   protected AutoFactory autoFactory;
+
+  protected ReentrantLock stateLock = new ReentrantLock();
+
 
   public BreakerSwerveDrivetrain(
     BreakerSwerveDrivetrainConstants driveTrainConstants, 
@@ -94,7 +99,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     ) {
     super(driveTrainConstants, driveTrainConstants.odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
     this.constants = driveTrainConstants;
-    m_telemetryFunction = this::telemetryCallbackWrapperFunction;
+    super.registerTelemetry(this::telemetryCallbackWrapperFunction);
     double tempCommonMaxModuleSpeed = Double.MAX_VALUE;
     for (SwerveModuleConstants modConst : modules) {
       tempCommonMaxModuleSpeed = Math.min(tempCommonMaxModuleSpeed, modConst.SpeedAt12Volts); //@TODO this uses the 12v nominal speed because a direct max speed is not yet exposed
@@ -142,26 +147,27 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    *
    * @param telemetryFunction Function to call for telemetry or logging
    */
+  @Override
   public void registerTelemetry(Consumer<SwerveDriveState> telemetryFunction) {
     try {
-        m_stateLock.lock();
+        stateLock.lock();
         userTelemetryCallback = telemetryFunction;
     } finally {
-        m_stateLock.unlock();
+        stateLock.unlock();
     }
   }
 
   public ChassisAccels getChassisAccels() {
     try {
-      m_stateLock.lock();
+      stateLock.lock();
       return chassisAccels;
     } finally {
-      m_stateLock.unlock();
+      stateLock.unlock();
     }
   }
 
   public ChassisSpeeds getCurrentChassisSpeeds() {
-    return  m_kinematics.toChassisSpeeds(getState().ModuleStates);
+    return getKinematics().toChassisSpeeds(getState().ModuleStates);
   }
 
   public ChassisSpeeds getCurrentFieldRelitiveChassisSpeeds() {
@@ -172,14 +178,40 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     return run(() -> this.setControl(requestSupplier.get()));
   }
 
+   /**
+     * Takes the {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perpective direction
+     * and treats it as the forward direction for
+     * {@link SwerveRequest.ForwardPerspectiveValue#OperatorPerspective}.
+     * <p>
+     * If the operator is in the Blue Alliance Station, this should be 0 degrees.
+     * If the operator is in the Red Alliance Station, this should be 180 degrees.
+     * <p>
+     * This does not change the robot pose, which is in the
+     * {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perspective.
+     * As a result, the robot pose may need to be reset using {@link #resetPose}.
+     *
+     * @param fieldDirection Heading indicating which direction is forward from
+     *                       the {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perspective
+     */
+    @Override
+    public void setOperatorPerspectiveForward(Rotation2d fieldDirection) {
+      super.setOperatorPerspectiveForward(fieldDirection);
+      this.fieldDirection = fieldDirection;
+    }
+
+    public Rotation2d getOperatorPerspectiveForward() {
+      return fieldDirection;
+    }
+
+
   private void configPathPlanner() {
     if (constants.pathplannerConfig.robotConfig.isPresent()) {
       double driveBaseRadius = 0;
-      for (var moduleLocation : m_moduleLocations) {
+      for (var moduleLocation : getModuleLocations()) {
           driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
       }
 
-      SwerveRequest.ApplyChassisSpeeds request = new SwerveRequest.ApplyChassisSpeeds();
+      SwerveRequest.ApplyRobotSpeeds request = new SwerveRequest.ApplyRobotSpeeds();
       request.DriveRequestType = DriveRequestType.Velocity;
       BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
         request.Speeds = speeds;
@@ -190,7 +222,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
       AutoBuilder.configure(
         ()->this.getState().Pose, // Supplier of current robot pose
-        this::seedFieldRelative,  // Consumer for seeding pose against auto
+        this::resetPose,  // Consumer for seeding pose against auto
         this::getCurrentChassisSpeeds,
         output, // Consumer of ChassisSpeeds to drive the robot
         new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
@@ -236,11 +268,6 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         });
         simNotifier.startPeriodic(1.0/constants.simUpdateFrequency);
   }
-
-  public Rotation2d getOperatorForwardDirection() {
-    return m_controlParams.operatorForwardDirection;
-  }
-
 
   public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig teleopControlConfig) {
     return new BreakerSwerveTeleopControl(this, x, y, omega, teleopControlConfig);

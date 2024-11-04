@@ -12,6 +12,7 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveModule;
+import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
@@ -33,7 +34,10 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.util.WPILibVersion;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.BuildConstants;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.physics.BreakerVector3;
@@ -42,11 +46,18 @@ import frc.robot.BreakerLib.util.BreakerLibVersion;
 
 
 /** Add your docs here. */
-public class BreakerLog extends DogLog {
+public class BreakerLog extends DogLog implements Subsystem {
     private static ArrayList<CANBus> loggedCANBuses = new ArrayList<>();
-    private static Command periodicLogLoop = Commands.run(BreakerLog::periodicLog);
+    private static final BreakerLog instance = new BreakerLog();
 
-    private BreakerLog 
+    private BreakerLog() {
+        CommandScheduler.getInstance().registerSubsystem(this);
+    }
+
+    @Override
+    public void periodic() {
+        BreakerLog.periodicLog();
+    }
 
     public static void log(String key, Measure<?> value) {
         log(key + "/Value", value.magnitude());
@@ -58,7 +69,6 @@ public class BreakerLog extends DogLog {
         log(key + "/X", value.getX());
         log(key + "/Y", value.getY());
         log(key + "/Angle", value.getAngle());
-        TimedRobot.
     }
 
     public static void log(String key, BreakerVector3 value) {
@@ -142,14 +152,16 @@ public class BreakerLog extends DogLog {
         
     }
 
-    private static void logCANBuses() {
-        for (CANBus bus: loggedCANBuses) {
-            log("CanivoreBuses/" + bus.getName(),bus);
+    private static void logCANBuses() {{
+        for (CANBus bus: loggedCANBuses) 
+            log("SystemStats/CanivoreBuses/" + bus.getName(), bus);
         }
     }
 
     private static void periodicLog() {
-        logCANBuses();
+        if (options.logExtras()) {
+            logCANBuses();
+        }
     }
     
     public static void logMetadata(String key, String value) {

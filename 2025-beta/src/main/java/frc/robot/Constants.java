@@ -29,6 +29,8 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
+import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.SetpointGenerationConfig;
+import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
 import frc.robot.BreakerLib.util.loging.BreakerLog.GitInfo;
 import edu.wpi.first.units.measure.*;
 import static edu.wpi.first.units.Units.*;
@@ -56,6 +58,11 @@ public final class Constants {
 
     public static class DriveConstants {
         public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.001), new PIDConstants(0, 0, 0));//2.8
+        public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(Units.RotationsPerSecond.of(10));
+        public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig().withHeadingCompensation(HEADING_COMPENSATION_CONFIG).withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
+
+
+
         public static final LinearVelocity MAXIMUM_TRANSLATIONAL_VELOCITY = Units.MetersPerSecond.of(4.5);
         public static final AngularVelocity MAXIMUM_ROTATIONAL_VELOCITY = Units.RadiansPerSecond.of(9.5);
     

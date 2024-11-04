@@ -4,9 +4,10 @@
 
 package frc.robot;
 
+import static frc.robot.Constants.DriveConstants.DRIVETRAIN_CONSTANTS;
 import static frc.robot.Constants.DriveConstants.HEADING_COMPENSATION_CONFIG;
+import static frc.robot.Constants.DriveConstants.TELEOP_CONTROL_CONFIG;
 
-import java.io.InputStream;
 import java.util.function.BooleanSupplier;
 
 import dev.doglog.DogLogOptions;
@@ -24,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
+import frc.robot.BreakerLib.driverstation.BreakerInputStream2d;
 import frc.robot.BreakerLib.driverstation.gamepad.controllers.BreakerXboxController;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl;
 import frc.robot.BreakerLib.util.BreakerLibVersion;
@@ -44,32 +46,28 @@ public class RobotContainer {
     if (RobotBase.isReal()) {
       BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
     }
+    BreakerLog.addCANBus(GeneralConstants.DRIVE_CANIVORE_BUS);
     BreakerLog.setEnabled(true);
     BreakerLog.logMetadata(new Metadata("Brick", 2024, "Roman Abrahamson", GeneralConstants.GIT_INFO));
   }
 
   private void configureControls() {
-    driverX = controller.getLeftThumbstick().getStreamX();
-    driverY = controller.getLeftThumbstick().getStreamY();
-    BreakerInputStream translationalMag =
-        BreakerInputStream.hypot(driverX, driverY)
+    BreakerInputStream2d driverTranslation = controller.getLeftThumbstick();
+    driverTranslation
             .clamp(1.0)
             .deadband(Constants.OperatorConstants.TRANSLATIONAL_DEADBAND, 1.0)
-            .map(new BreakerLinearizedConstrainedExponential(0.075, 3.0, true))
+            .mapToMagnitude(new BreakerLinearizedConstrainedExponential(0.075, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_TRANSLATIONAL_VELOCITY.in(Units.MetersPerSecond));
+    driverX = driverTranslation.getX();
+    driverY = driverTranslation.getY();
 
-    BreakerInputStream translationalTheta = BreakerInputStream.atan(driverX, driverY);
-
-    driverX = translationalMag.scale(translationalTheta.map(Math::cos));
-    driverY = translationalMag.scale(translationalTheta.map(Math::sin));
-
-    driverOmega = controller.getRightThumbstick().getStreamX()
+    driverOmega = controller.getRightThumbstick().getX()
             .clamp(1.0)
             .deadband(Constants.OperatorConstants.ROTATIONAL_DEADBAND, 1.0)
             .map(new BreakerLinearizedConstrainedExponential(0.0, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
-    drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
+    drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, TELEOP_CONTROL_CONFIG));
 
     
 

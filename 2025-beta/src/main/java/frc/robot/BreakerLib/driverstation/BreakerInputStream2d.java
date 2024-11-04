@@ -3,44 +3,33 @@
 // the WPILib BSD license file in the root directory of this project.
 
 package frc.robot.BreakerLib.driverstation;
+
 import java.util.function.DoubleSupplier;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
 
 /** Add your docs here. */
-public interface BreakerInputStream extends DoubleSupplier {
-    
-  /**
-   * Creates an input stream from another.
-   *
-   * @param base The base stream.
-   * @return A new input stream.
-   */
-  public static BreakerInputStream  of(DoubleSupplier base) {
-    return base::getAsDouble;
+public interface BreakerInputStream2d extends Supplier<BreakerVector2> {
+
+  public static BreakerInputStream2d of(BreakerInputStream  x, BreakerInputStream  y) {
+    return () -> new BreakerVector2(x.get(), y.get());
   }
 
-  public static BreakerInputStream  hypot(BreakerInputStream  x, BreakerInputStream  y) {
-    return () -> Math.hypot(x.get(), y.get());
+  public default BreakerInputStream getX() {
+    return () -> get().getX();
   }
 
-  public static BreakerInputStream  atan(BreakerInputStream  x, BreakerInputStream  y) {
-    return () -> Math.atan2(x.get(), y.get());
-  }
-
-  /**
-   * Shorthand to return a double value.
-   *
-   * @return The value from {@link #getAsDouble()}.
-   */
-  public default double get() {
-    return getAsDouble();
+  public default BreakerInputStream getY() {
+    return () -> get().getY();
   }
 
   /**
@@ -49,8 +38,22 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param operator A function that takes in a double input and returns a double output.
    * @return A mapped stream.
    */
-  public default BreakerInputStream map(DoubleUnaryOperator operator) {
-    return () -> operator.applyAsDouble(getAsDouble());
+  public default BreakerInputStream2d map(UnaryOperator<BreakerVector2> operator) {
+    return () -> operator.apply(get());
+  }
+
+  /**
+   * Maps the stream outputs by an operator.
+   *
+   * @param operator A function that takes in a double input and returns a double output.
+   * @return A mapped stream.
+   */
+  public default BreakerInputStream2d mapToMagnitude(DoubleUnaryOperator operator) {
+    return () -> {
+        BreakerVector2 val = get();
+        double mag = operator.applyAsDouble(val.getMagnitude());
+        return new BreakerVector2(val.getAngle(), mag);
+    };
   }
 
   /**
@@ -59,8 +62,8 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param factor A supplier of scaling factors.
    * @return A scaled stream.
    */
-  public default BreakerInputStream scale(DoubleSupplier factor) {
-    return map(x -> x * factor.getAsDouble());
+  public default BreakerInputStream2d scale(DoubleSupplier factor) {
+    return map(x -> x.times(factor.getAsDouble()));
   }
 
   /**
@@ -69,7 +72,7 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param factor A scaling factor.
    * @return A scaled stream.
    */
-  public default BreakerInputStream scale(double factor) {
+  public default BreakerInputStream2d scale(double factor) {
     return scale(() -> factor);
   }
 
@@ -78,9 +81,14 @@ public interface BreakerInputStream extends DoubleSupplier {
    *
    * @return A stream scaled by -1.
    */
-  public default BreakerInputStream negate() {
-    return scale(-1);
+  public default BreakerInputStream2d negate() {
+    return map(x -> x.unaryMinus());
   }
+
+  public default BreakerInputStream getAngle() {
+    return () -> get().getAngle().getRadians();
+  }
+
 
   /**
    * Offsets the stream by a factor.
@@ -88,8 +96,8 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param factor A supplier of offset values.
    * @return An offset stream.
    */
-  public default BreakerInputStream add(DoubleSupplier offset) {
-    return map(x -> x + offset.getAsDouble());
+  public default BreakerInputStream2d add(Supplier<BreakerVector2> offset) {
+    return map(x -> x.plus(offset.get()));
   }
 
   /**
@@ -98,7 +106,7 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param factor An offset.
    * @return An offset stream.
    */
-  public default BreakerInputStream add(double factor) {
+  public default BreakerInputStream2d add(BreakerVector2 factor) {
     return add(() -> factor);
   }
 
@@ -108,18 +116,8 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param exponent The exponent to raise them to.
    * @return An exponentiated stream.
    */
-  public default BreakerInputStream pow(double exponent) {
-    return map(x -> Math.pow(x, exponent));
-  }
-
-  /**
-   * Raises the stream outputs to an exponent and keeps their original sign.
-   *
-   * @param exponent The exponent to raise them to.
-   * @return An exponentiated stream.
-   */
-  public default BreakerInputStream signedPow(double exponent) {
-    return map(x -> Math.copySign(Math.pow(x, exponent), x));
+  public default BreakerInputStream2d pow(double exponent) {
+    return map(x -> x.pow(exponent));
   }
 
   /**
@@ -128,8 +126,8 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param filter The linear filter to use.
    * @return A filtered stream.
    */
-  public default BreakerInputStream filter(LinearFilter filter) {
-    return map(filter::calculate);
+  public default BreakerInputStream2d filter(LinearFilter filter) {
+    return mapToMagnitude(filter::calculate);
   }
 
   /**
@@ -139,8 +137,9 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param max The maximum value to scale with.
    * @return A deadbanded stream.
    */
-  public default BreakerInputStream deadband(double deadband, double max) {
-    return map(x -> MathUtil.applyDeadband(x, deadband, max));
+  public default BreakerInputStream2d deadband(double deadband, double max) {
+
+    return mapToMagnitude(x -> MathUtil.applyDeadband(x, deadband, max));
   }
 
   /**
@@ -149,8 +148,8 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param magnitude The upper bound to clamp with.
    * @return A clamped stream.
    */
-  public default BreakerInputStream clamp(double magnitude) {
-    return map(x -> MathUtil.clamp(x, -magnitude, magnitude));
+  public default BreakerInputStream2d clamp(double magnitude) {
+    return map(x -> x.clampMagnitude(-magnitude, magnitude));
   }
 
   /**
@@ -159,9 +158,9 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param rate The rate in units / s.
    * @return A rate limited stream.
    */
-  public default BreakerInputStream rateLimit(double rate) {
+  public default BreakerInputStream2d rateLimit(double rate) {
     var limiter = new SlewRateLimiter(rate);
-    return map(x -> limiter.calculate(x));
+    return mapToMagnitude(x -> limiter.calculate(x));
   }
 
   /**
@@ -173,9 +172,9 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param key The NetworkTables key to publish to.
    * @return A stream with the same output as this one.
    */
-  public default BreakerInputStream log(String key) {
+public default BreakerInputStream2d log(String key) {
     return () -> {
-      double val = this.get();
+      BreakerVector2 val = this.get();
       BreakerLog.log(key, val);
       return val;
     };

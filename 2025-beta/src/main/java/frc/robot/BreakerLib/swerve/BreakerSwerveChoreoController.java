@@ -20,7 +20,7 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
     private final PIDController xController;
     private final PIDController yController;
     private final PIDController thetaController;
-    private final SwerveRequest.ApplyChassisSpeeds request;
+    private final SwerveRequest.ApplyFieldSpeeds request;
 
 
 
@@ -35,7 +35,7 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
         this.yController = yController;
         thetaController.enableContinuousInput(-Math.PI, Math.PI);
         this.thetaController = thetaController;
-        request = new SwerveRequest.ApplyChassisSpeeds();
+        request = new SwerveRequest.ApplyFieldSpeeds();
         request.DriveRequestType = DriveRequestType.Velocity;
     }
 
@@ -54,25 +54,15 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
         double rotationFeedback = thetaController.calculate(t.getRotation().getRadians(),
            u.heading);
 
-        ChassisSpeeds targetSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+        ChassisSpeeds targetSpeeds = new ChassisSpeeds(
             xFF + xFeedback,
             yFF + yFeedback,
-            rotationFF + rotationFeedback,
-            t.getRotation()
+            rotationFF + rotationFeedback
         );
 
-        double[] forcesX = u.moduleForcesX();
-        double[] forcesY = u.moduleForcesY();
-        for (int i = 0; i < forcesX.length; i++) {
-            BreakerVector2 vec = new BreakerVector2(forcesX[i], forcesY[i]);
-            vec = vec.rotateBy(t.getRotation().unaryMinus());
-            forcesX[i] = vec.getX();
-            forcesY[i] = vec.getY();
-        }
-
         request.Speeds = targetSpeeds;
-        request.WheelForceFeedforwardsX = forcesX;
-        request.WheelForceFeedforwardsY = forcesY;
+        request.WheelForceFeedforwardsX = u.moduleForcesX();
+        request.WheelForceFeedforwardsY = u.moduleForcesY();
         drivetrain.setControl(request);
     }
 }

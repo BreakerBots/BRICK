@@ -160,6 +160,10 @@ public class BreakerVector2 implements BreakerInterpolable<BreakerVector2> {
     public BreakerVector2 div(double scalar) {
         return new BreakerVector2(x / scalar,  y / scalar);
     }
+
+    public BreakerVector2 pow(double exponent)  {
+        return new BreakerVector2(vectorRotation, Math.pow(magnitude, exponent));
+    }
     
     
     /** 
