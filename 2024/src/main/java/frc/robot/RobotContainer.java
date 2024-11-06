@@ -73,6 +73,7 @@ public class RobotContainer {
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
     drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, HEADING_COMPENSATION_CONFIG));
+    controller.getLeftBumper().or(controller.getRightBumper()).onTrue(Commands.runOnce(drivetrain::seedFieldRelative));
 
     
 

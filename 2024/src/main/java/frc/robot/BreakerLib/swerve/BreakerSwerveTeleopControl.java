@@ -14,6 +14,7 @@ import com.pathplanner.lib.util.PIDConstants;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.Angle;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
@@ -21,6 +22,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.units.Velocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
+import frc.robot.BreakerLib.util.loging.BreakerLog;
 
 public class BreakerSwerveTeleopControl extends Command {
   /** Creates a new BreakerSwerveTeleopControl. */
@@ -63,12 +65,13 @@ public class BreakerSwerveTeleopControl extends Command {
     double xImpt = x.get();
     double yImpt = y.get();
     double omegaImpt = omega.get();
-    if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(omegaImpt) > headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
+    if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(omegaImpt) < headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
       omegaImpt = pid.calculate(drivetrain.getPigeon2().getRotation2d().getRadians(), headingSetpoint.getRotations());
     } else {
       headingSetpoint = drivetrain.getPigeon2().getRotation2d();
     }
     request.withVelocityX(xImpt).withVelocityY(yImpt).withRotationalRate(omegaImpt);
+    BreakerLog.log("SwerveDrivetrain/ReqSpeeds", new ChassisSpeeds(xImpt, yImpt, omegaImpt));
     drivetrain.setControl(request);
   }
 

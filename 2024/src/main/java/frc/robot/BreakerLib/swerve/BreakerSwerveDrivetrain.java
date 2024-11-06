@@ -240,7 +240,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
           DriverStation.getAlliance().ifPresent((allianceColor) -> {
               this.setOperatorPerspectiveForward(
                       allianceColor == Alliance.Red ? constants.redAlliancePerspectiveRotation
-                              : constants.redAlliancePerspectiveRotation);
+                              : constants.blueAlliancePerspectiveRotation);
               hasAppliedOperatorPerspective = true;
         });
       }
