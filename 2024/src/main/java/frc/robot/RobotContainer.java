@@ -44,9 +44,9 @@ public class RobotContainer {
   public RobotContainer() {
     configureControls();
     BreakerLog.setOptions(new DogLogOptions(true, false, true, true, 2000)); 
-    if (RobotBase.isReal()) {
-      BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
-    }
+    // if (RobotBase.isReal()) {
+    //   BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
+    // }
     BreakerLog.setEnabled(true);
     BreakerLog.logMetadata(new Metadata("Brick", 2024, "Roman Abrahamson", GeneralConstants.GIT_INFO));
   }
