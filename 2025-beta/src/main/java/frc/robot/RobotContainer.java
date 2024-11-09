@@ -44,9 +44,9 @@ public class RobotContainer {
   public RobotContainer() {
     configureControls();
     BreakerLog.setOptions(new DogLogOptions(true, false, true, true, true, 2000)); 
-    if (RobotBase.isReal()) {
-      BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
-    }
+    // if (RobotBase.isReal()) {
+    //   BreakerLog.setPdh(new PowerDistribution(1, ModuleType.kRev));
+    // }
     BreakerLog.addCANBus(GeneralConstants.DRIVE_CANIVORE_BUS);
     BreakerLog.setEnabled(true);
     BreakerLog.logMetadata(new Metadata("Brick", 2024, "Roman Abrahamson", GeneralConstants.GIT_INFO));
@@ -59,8 +59,8 @@ public class RobotContainer {
             .deadband(Constants.OperatorConstants.TRANSLATIONAL_DEADBAND, 1.0)
             .mapToMagnitude(new BreakerLinearizedConstrainedExponential(0.075, 3.0, true))
             .scale(Constants.DriveConstants.MAXIMUM_TRANSLATIONAL_VELOCITY.in(Units.MetersPerSecond));
-    driverX = driverTranslation.getX();
-    driverY = driverTranslation.getY();
+    driverX = driverTranslation.getY();
+    driverY = driverTranslation.getX();
 
     driverOmega = controller.getRightThumbstick().getX()
             .clamp(1.0)

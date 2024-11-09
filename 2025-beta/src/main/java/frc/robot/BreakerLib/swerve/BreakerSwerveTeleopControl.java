@@ -55,12 +55,13 @@ public class BreakerSwerveTeleopControl extends Command {
   
   */
 
-  public BreakerSwerveTeleopControl(BreakerSwerveDrivetrain drivetrain, BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig headingCompensationConfig) {
+  public BreakerSwerveTeleopControl(BreakerSwerveDrivetrain drivetrain, BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig teleopControlConfig) {
     addRequirements(drivetrain);
     this.drivetrain = drivetrain;
     this.x = x;
     this.y = y;
     this.omega = omega;
+    this.teleopControlConfig = teleopControlConfig;
     request = new SwerveRequest.FieldCentric().withDriveRequestType(DriveRequestType.Velocity);
     if (teleopControlConfig.getSetpointGenerationConfig().isPresent()) {
       SetpointGenerationConfig generationConfig = teleopControlConfig.getSetpointGenerationConfig().get();
@@ -138,8 +139,8 @@ public class BreakerSwerveTeleopControl extends Command {
   }
 
   public static class TeleopControlConfig {
-    private Optional<HeadingCompensationConfig> headingCompensationConfig;
-    private Optional<SetpointGenerationConfig> setpointGenerationConfig;
+    private Optional<HeadingCompensationConfig> headingCompensationConfig = Optional.empty();
+    private Optional<SetpointGenerationConfig> setpointGenerationConfig = Optional.empty();
 
     public TeleopControlConfig withHeadingCompensation(HeadingCompensationConfig headingCompensationConfig) {
       this.headingCompensationConfig = Optional.of(headingCompensationConfig);

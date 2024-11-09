@@ -48,8 +48,8 @@ public final class Constants {
   
   public static class OperatorConstants {
     public static final int CONTROLLER_PORT= 0;
-    public static final double TRANSLATIONAL_DEADBAND = 0.075;
-     public static final double ROTATIONAL_DEADBAND = 0.075;
+    public static final double TRANSLATIONAL_DEADBAND = 0.1;
+     public static final double ROTATIONAL_DEADBAND = 0.1;
   }
 
     public static class DriveConstants {
@@ -113,7 +113,7 @@ public final class Constants {
 
                 private static final double kDriveGearRatio = 5.357142857142857;
                 private static final double kSteerGearRatio = 21.428571428571427;
-                private static final double kWheelRadiusInches = 2.0;
+                private static final Distance kWheelRadius = Units.Inches.of(2.0);
 
                 private static final String kCANbusName = GeneralConstants.DRIVE_CANIVORE_BUS.getName();
                 private static final int kPigeonId = 5;
@@ -133,7 +133,7 @@ public final class Constants {
                 private static final SwerveModuleConstantsFactory ConstantCreator = new SwerveModuleConstantsFactory()
                                 .withDriveMotorGearRatio(kDriveGearRatio)
                                 .withSteerMotorGearRatio(kSteerGearRatio)
-                                .withWheelRadius(kWheelRadiusInches)
+                                .withWheelRadius(kWheelRadius)
                                 .withSlipCurrent(kSlipCurrentA)
                                 .withSteerMotorGains(steerGains)
                                 .withDriveMotorGains(driveGains)
@@ -159,8 +159,8 @@ public final class Constants {
                 private static final double kFrontLeftEncoderOffset = 0.186279296875;
                 private static final boolean kFrontLeftSteerInvert = true;
                 private static final Translation2d kFrontLeftModulePosition = new Translation2d(
-                        edu.wpi.first.math.util.Units.inchesToMeters(14.04125),
-                        Rotation2d.fromDegrees(45)
+                        Units.Inches.of(9.84),
+                        Units.Inches.of(9.84)
                 );
 
                 // Front Right
@@ -171,8 +171,8 @@ public final class Constants {
                 private static final boolean kFrontRightSteerInvert = true;
 
                 private static final Translation2d kFrontRightModulePosition = new Translation2d(
-                        edu.wpi.first.math.util.Units.inchesToMeters(14.04125),
-                        Rotation2d.fromDegrees(-45)
+                        Units.Inches.of(9.84),
+                        Units.Inches.of(-9.84)
                 );
 
                 // Back Left
@@ -183,8 +183,8 @@ public final class Constants {
                 private static final boolean kBackLeftSteerInvert = true;
 
                 private static final Translation2d kBackLeftModulePosition = new Translation2d(
-                        edu.wpi.first.math.util.Units.inchesToMeters(14.04125),
-                        Rotation2d.fromDegrees(135)
+                        Units.Inches.of(-9.84),
+                        Units.Inches.of(9.84)
                 );
 
                 // Back Right
@@ -194,8 +194,8 @@ public final class Constants {
                 private static final double kBackRightEncoderOffset = -0.302978515625;
                 private static final boolean kBackRightSteerInvert = true;
                 private static final Translation2d kBackRightModulePosition = new Translation2d(
-                        edu.wpi.first.math.util.Units.inchesToMeters(14.04125),
-                        Rotation2d.fromDegrees(-135)
+                        Units.Inches.of(-9.84),
+                        Units.Inches.of(-9.84)
                 );
 
                 public static final SwerveModuleConstants FRONT_LEFT_MODULE_CONSTANTS = ConstantCreator
