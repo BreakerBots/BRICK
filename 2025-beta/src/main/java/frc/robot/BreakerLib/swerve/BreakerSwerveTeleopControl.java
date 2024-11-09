@@ -92,7 +92,7 @@ public class BreakerSwerveTeleopControl extends Command {
     double omegaImpt = omega.get();
     if (teleopControlConfig.headingCompensationConfig.isPresent()) {
       HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.headingCompensationConfig.get();
-      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.getMinActiveLinearVelocity().in(Units.MetersPerSecond) && Math.abs(omegaImpt) > headingCompensationConfig.getAngularVelocityDeadband().in(Units.RadiansPerSecond)) {
+      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(omegaImpt) < headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
         omegaImpt = headingCompensationConfig.getPID().calculate(drivetrain.getPigeon2().getRotation2d().getRadians(), headingSetpoint.getRotations());
       } else {
         headingSetpoint = drivetrain.getPigeon2().getRotation2d();

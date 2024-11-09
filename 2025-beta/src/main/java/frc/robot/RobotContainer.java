@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.ConditionalCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream2d;
+import frc.robot.BreakerLib.driverstation.gamepad.BreakerGamepadTimedRumbleCommand;
 import frc.robot.BreakerLib.driverstation.gamepad.controllers.BreakerXboxController;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl;
 import frc.robot.BreakerLib.util.BreakerLibVersion;
@@ -68,7 +69,9 @@ public class RobotContainer {
             .scale(Constants.DriveConstants.MAXIMUM_ROTATIONAL_VELOCITY.in(Units.RadiansPerSecond));
 
     drivetrain.setDefaultCommand(drivetrain.getTeleopControlCommand(driverX, driverY, driverOmega, TELEOP_CONTROL_CONFIG));
-
+    controller.getLeftBumper().or(controller.getRightBumper())
+    .onTrue(Commands.runOnce(drivetrain::seedFieldCentric)
+      .alongWith(new BreakerGamepadTimedRumbleCommand(controller, 0.25, 0.5, 0.5)));
     
 
   
