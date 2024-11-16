@@ -55,8 +55,8 @@ public final class Constants {
     public static class DriveConstants {
                 public static final AngularVelocity MAXIMUM_MODULE_AZIMUTH_SPEED = Units.DegreesPerSecond.of(720);
                 public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(
-                                Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.001),
-                                new PIDConstants(2.8, 0, 0));// 2.8
+                                Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.0000001),
+                                new PIDConstants(1.5, 0, 0));// 2.8
                 public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
                         .withHeadingCompensation(HEADING_COMPENSATION_CONFIG);

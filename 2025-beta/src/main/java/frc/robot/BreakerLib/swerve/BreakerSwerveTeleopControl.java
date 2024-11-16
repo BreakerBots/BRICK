@@ -28,6 +28,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
+import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj.Timer;
@@ -43,6 +44,7 @@ public class BreakerSwerveTeleopControl extends Command {
   private SwerveRequest.FieldCentric request;
   private TeleopControlConfig teleopControlConfig;
   private Rotation2d headingSetpoint;
+  private BreakerInputStream rateLimitedOmegaStream;
   private Optional<SwerveSetpointGenerator> setpointGenerator;
 
   private double lastTimestamp;
@@ -76,6 +78,13 @@ public class BreakerSwerveTeleopControl extends Command {
     } else {
       setpointGenerator = Optional.empty();
     }
+
+    if (teleopControlConfig.headingCompensationConfig.isPresent()) {
+      HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.getHeadingCompensationConfig().get();
+      rateLimitedOmegaStream = omega.rateLimit(2.0);
+    } else {
+      rateLimitedOmegaStream = omega;
+    }
   }
 
   // Called when the command is initially scheduled.
@@ -94,8 +103,8 @@ public class BreakerSwerveTeleopControl extends Command {
     double omegaImpt = omega.get();
     if (teleopControlConfig.headingCompensationConfig.isPresent()) {
       HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.headingCompensationConfig.get();
-      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(omegaImpt) < headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
-        omegaImpt = headingCompensationConfig.getPID().calculate(drivetrain.getPigeon2().getRotation2d().getRadians(), headingSetpoint.getRotations());
+      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(delayedOmegaStream.get().getAsDouble()) < headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
+        omegaImpt = headingCompensationConfig.getPID().calculate(drivetrain.getPigeon2().getRotation2d().getRadians(), headingSetpoint.getRadians());
       } else {
         headingSetpoint = drivetrain.getPigeon2().getRotation2d();
       }
@@ -205,6 +214,10 @@ public class BreakerSwerveTeleopControl extends Command {
 
     public AngularVelocity getAngularVelocityDeadband() {
         return angularVelocityDeadband;
+    }
+
+    public AngularAcceleration getRateLimit() {
+      
     }
 
     public LinearVelocity getMinActiveLinearVelocity() {
