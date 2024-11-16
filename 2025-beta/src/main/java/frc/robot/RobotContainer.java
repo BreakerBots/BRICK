@@ -28,6 +28,7 @@ import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream2d;
 import frc.robot.BreakerLib.driverstation.gamepad.BreakerGamepadTimedRumbleCommand;
 import frc.robot.BreakerLib.driverstation.gamepad.controllers.BreakerXboxController;
+import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl;
 import frc.robot.BreakerLib.util.BreakerLibVersion;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
@@ -54,7 +55,7 @@ public class RobotContainer {
 
   private void configureControls() {
     BreakerInputStream2d driverTranslation = controller.getLeftThumbstick();
-    driverTranslation
+    driverTranslation = driverTranslation
             .clamp(1.0)
             .deadband(Constants.OperatorConstants.TRANSLATIONAL_DEADBAND, 1.0)
             .mapToMagnitude(new BreakerLinearizedConstrainedExponential(0.075, 3.0, true))

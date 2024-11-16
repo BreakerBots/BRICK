@@ -56,11 +56,11 @@ public final class Constants {
                 public static final AngularVelocity MAXIMUM_MODULE_AZIMUTH_SPEED = Units.DegreesPerSecond.of(720);
                 public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(
                                 Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.001),
-                                new PIDConstants(0, 0, 0));// 2.8
+                                new PIDConstants(2.8, 0, 0));// 2.8
                 public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
-                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG)
-                        .withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
+                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG);
+                        //.withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
                 public static final LinearVelocity MAXIMUM_TRANSLATIONAL_VELOCITY = Units.MetersPerSecond.of(4.5);
                 public static final AngularVelocity MAXIMUM_ROTATIONAL_VELOCITY = Units.RadiansPerSecond.of(9.5);
                  // The steer motor uses any SwerveModule.SteerRequestType control request with the
@@ -71,8 +71,8 @@ public final class Constants {
                 // When using closed-loop control, the drive motor uses the control
                 // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
                 private static final Slot0Configs driveGains = new Slot0Configs()
-                .withKP(0).withKI(0).withKD(0)
-                .withKS(0).withKV(0.2).withKA(0);
+                .withKP(0.001).withKI(0).withKD(0)
+                .withKS(0.01).withKV(0.35).withKA(0);
 
                 // The closed-loop output type to use for the steer motors;
                 // This affects the PID/FF gains for the steer motors

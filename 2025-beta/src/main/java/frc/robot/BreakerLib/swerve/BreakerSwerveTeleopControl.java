@@ -112,7 +112,7 @@ public class BreakerSwerveTeleopControl extends Command {
       SwerveModuleState[] moduleStates = curSetpoint.moduleStates();
       double[] robotRelativeForcesXNewtons = curSetpoint.feedforwards().robotRelativeForcesXNewtons();
       double[] robotRelativeForcesYNewtons = curSetpoint.feedforwards().robotRelativeForcesYNewtons();
-      BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", curSetpoint.v);
+      BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", curSetpoint.robotRelativeSpeeds());
       for (int i = 0; i < curSetpoint.moduleStates().length; i++) {
         SwerveModule module = drivetrain.getModule(i);
         module.apply(new ModuleRequest()
@@ -126,6 +126,7 @@ public class BreakerSwerveTeleopControl extends Command {
       prevSetpoint = curSetpoint;
     } else {
       request.withVelocityX(xImpt).withVelocityY(yImpt).withRotationalRate(omegaImpt);
+      BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", new ChassisSpeeds(request.VelocityX, request.VelocityY, request.RotationalRate));
       drivetrain.setControl(request);
     }
   }
