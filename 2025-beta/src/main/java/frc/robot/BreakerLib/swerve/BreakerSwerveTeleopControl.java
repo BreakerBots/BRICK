@@ -34,6 +34,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.BreakerVector2;
+import frc.robot.BreakerLib.util.loging.BreakerLog;
 
 public class BreakerSwerveTeleopControl extends Command {
   /** Creates a new BreakerSwerveTeleopControl. */
@@ -111,6 +112,7 @@ public class BreakerSwerveTeleopControl extends Command {
       SwerveModuleState[] moduleStates = curSetpoint.moduleStates();
       double[] robotRelativeForcesXNewtons = curSetpoint.feedforwards().robotRelativeForcesXNewtons();
       double[] robotRelativeForcesYNewtons = curSetpoint.feedforwards().robotRelativeForcesYNewtons();
+      BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", curSetpoint.v);
       for (int i = 0; i < curSetpoint.moduleStates().length; i++) {
         SwerveModule module = drivetrain.getModule(i);
         module.apply(new ModuleRequest()
