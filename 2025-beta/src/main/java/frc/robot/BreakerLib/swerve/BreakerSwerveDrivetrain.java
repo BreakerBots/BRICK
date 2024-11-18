@@ -38,6 +38,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.geometry.proto.Twist2dProto;
@@ -47,6 +48,8 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.Units;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -116,14 +119,14 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     chassisAccels = ChassisAccels.fromDeltaSpeeds(prevChassisSpeeds, state.Speeds, state.OdometryPeriod);
     prevChassisSpeeds = state.Speeds;
     
-    BreakerLog.log("SwerveDrivetrain/State/Pose", state.Pose);
-    BreakerLog.log("SwerveDrivetrain/State/Speeds", state.Speeds);
-    BreakerLog.log("SwerveDrivetrain/State/Accels", chassisAccels);
-    BreakerLog.log("SwerveDrivetrain/State/ModuleStates", state.ModuleStates);
-    BreakerLog.log("SwerveDrivetrain/State/TargetModuleStates", state.ModuleTargets);
-    BreakerLog.log("SwerveDrivetrain/State/SuccessfulDAQs", state.SuccessfulDaqs);
-    BreakerLog.log("SwerveDrivetrain/State/FailedDAQs", state.FailedDaqs);
-    BreakerLog.log("SwerveDrivetrain/State/OdometryPeriod", state.OdometryPeriod);
+    BreakerLog.log("SwerveDrivetrain/State/Movement/Pose", state.Pose);
+    BreakerLog.log("SwerveDrivetrain/State/Movement/Speeds", state.Speeds);
+    BreakerLog.log("SwerveDrivetrain/State/Movement/Accels", chassisAccels);
+    BreakerLog.log("SwerveDrivetrain/State/ModuleStates/RealModuleStates", state.ModuleStates);
+    BreakerLog.log("SwerveDrivetrain/State/ModuleStates/TargetModuleStates", state.ModuleTargets);
+    BreakerLog.log("SwerveDrivetrain/State/Odometry/SuccessfulDAQs", state.SuccessfulDaqs);
+    BreakerLog.log("SwerveDrivetrain/State/Odometry/FailedDAQs", state.FailedDaqs);
+    BreakerLog.log("SwerveDrivetrain/State/Odometry/OdometryPeriod", state.OdometryPeriod);
     
     if (userTelemetryCallback != null) {
       userTelemetryCallback.accept(state);
@@ -299,6 +302,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
     public ChoreoConfig choreoConfig = new ChoreoConfig();
     public PathplannerConfig pathplannerConfig = new PathplannerConfig();
+    public MapleSimConfig simulationConfig = new MapleSimConfig();
 
     public BreakerSwerveDrivetrainConstants() {
       super();
@@ -347,7 +351,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       return this;
     }
 
-    public BreakerSwerveDrivetrainConstants withChoreoConfig(PathplannerConfig pathplannerConfig) {
+    public BreakerSwerveDrivetrainConstants withPathplannerConfig(PathplannerConfig pathplannerConfig) {
       this.pathplannerConfig = pathplannerConfig;
       return this;
     }
@@ -403,6 +407,21 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
 
       public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
         this.robotConfig = Optional.of(robotConfig);
+        return this;
+      }
+    }
+
+    public static class MapleSimConfig {
+      public DCMotor driveMotor = DCMotor.getKrakenX60Foc(1);
+      public DCMotor steerMotor = DCMotor.getFalcon500Foc(1);
+      public SwerveModuleConstants moduleConstants;
+      public double tireCoefficientOfFriction;
+      public Mass robotMass = Units.Pound.of(100);
+      public Distance bumperLengthX = Units.Inches.of(35);
+      public Distance bumperWidthY = Units.Inches.of(35);
+
+      public MapleSimConfig withDriveMotor(DCMotor driveMotor) {
+        this.driveMotor = driveMotor;
         return this;
       }
     }

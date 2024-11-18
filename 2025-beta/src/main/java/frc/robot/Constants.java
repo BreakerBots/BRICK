@@ -23,6 +23,7 @@ import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.VelocityUnit;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants;
+import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants.ChoreoConfig;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.SetpointGenerationConfig;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
@@ -52,10 +53,18 @@ public final class Constants {
      public static final double ROTATIONAL_DEADBAND = 0.1;
   }
 
+  public static class AutoConstants {
+        public static final PIDConstants TRANSLATION_PID = new PIDConstants(0, 0, 0);
+        public static final PIDConstants ROTATION_PID = new PIDConstants(0, 0,0);
+        public static final ChoreoConfig CHOREO_CONFIG = new ChoreoConfig().withTranslationPID(TRANSLATION_PID).withRotationPID(ROTATION_PID);
+  }
+
     public static class DriveConstants {
                 public static final AngularVelocity MAXIMUM_MODULE_AZIMUTH_SPEED = Units.DegreesPerSecond.of(720);
                 public static final HeadingCompensationConfig HEADING_COMPENSATION_CONFIG = new HeadingCompensationConfig(
-                                Units.MetersPerSecond.of(0.05), Units.RadiansPerSecond.of(0.0000001),
+                                Units.MetersPerSecond.of(0.05), 
+                                Units.RadiansPerSecond.of(0.001), 
+                                Units.Seconds.of(0.2),
                                 new PIDConstants(1.5, 0, 0));// 2.8
                 public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
@@ -128,7 +137,8 @@ public final class Constants {
                 public static final BreakerSwerveDrivetrainConstants DRIVETRAIN_CONSTANTS = new BreakerSwerveDrivetrainConstants()
                                 .withCANBusName(kCANbusName)
                                 .withPigeon2Id(kPigeonId)
-                                .withPigeon2Configs(pigeonConfigs);
+                                .withPigeon2Configs(pigeonConfigs)
+                                .withChoreoConfig(AutoConstants.CHOREO_CONFIG);
 
                 private static final SwerveModuleConstantsFactory ConstantCreator = new SwerveModuleConstantsFactory()
                                 .withDriveMotorGearRatio(kDriveGearRatio)

@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain;
+import frc.robot.BreakerLib.util.loging.BreakerLog;
 
 //TODO switch to field rel version of ApplyChassisSpeeds when support for module force FF is added
 public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveSample> {
@@ -64,5 +65,13 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
         request.WheelForceFeedforwardsX = u.moduleForcesX();
         request.WheelForceFeedforwardsY = u.moduleForcesY();
         drivetrain.setControl(request);
+
+        BreakerLog.log("BreakerSwerveChoreoController/Goal", u);
+        BreakerLog.log("BreakerSwerveChoreoController/Error/X", xController.getError());
+        BreakerLog.log("BreakerSwerveChoreoController/Error/Y", yController.getError());
+        BreakerLog.log("BreakerSwerveChoreoController/Error/Theta", thetaController.getError());
+        BreakerLog.log("BreakerSwerveChoreoController/Outputs/Feedforward", new ChassisSpeeds(xFF, yFF, rotationFF));
+        BreakerLog.log("BreakerSwerveChoreoController/Outputs/Feedback", new ChassisSpeeds(xFeedback, yFeedback, rotationFeedback));
+        BreakerLog.log("BreakerSwerveChoreoController/Outputs/TargetSpeeds", targetSpeeds);
     }
 }

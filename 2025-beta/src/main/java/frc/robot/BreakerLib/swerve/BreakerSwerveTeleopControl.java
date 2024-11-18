@@ -31,6 +31,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Time;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
@@ -44,7 +45,7 @@ public class BreakerSwerveTeleopControl extends Command {
   private SwerveRequest.FieldCentric request;
   private TeleopControlConfig teleopControlConfig;
   private Rotation2d headingSetpoint;
-  private BreakerInputStream rateLimitedOmegaStream;
+  private DelayedInputThresholdMonitor omegaThresholdMonitor;
   private Optional<SwerveSetpointGenerator> setpointGenerator;
 
   private double lastTimestamp;
@@ -81,9 +82,9 @@ public class BreakerSwerveTeleopControl extends Command {
 
     if (teleopControlConfig.headingCompensationConfig.isPresent()) {
       HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.getHeadingCompensationConfig().get();
-      rateLimitedOmegaStream = omega.rateLimit(2.0);
+      omegaThresholdMonitor = new DelayedInputThresholdMonitor(headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond), headingCompensationConfig.omegaThresholdDelay);
     } else {
-      rateLimitedOmegaStream = omega;
+      omegaThresholdMonitor = new DelayedInputThresholdMonitor(0, Units.Seconds.of(0.0));
     }
   }
 
@@ -103,7 +104,7 @@ public class BreakerSwerveTeleopControl extends Command {
     double omegaImpt = omega.get();
     if (teleopControlConfig.headingCompensationConfig.isPresent()) {
       HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.headingCompensationConfig.get();
-      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && Math.abs(delayedOmegaStream.get().getAsDouble()) < headingCompensationConfig.angularVelocityDeadband.in(Units.RadiansPerSecond)) {
+      if (Math.hypot(xImpt, yImpt) >= headingCompensationConfig.minActiveLinearVelocity.in(Units.MetersPerSecond) && omegaThresholdMonitor.isTriggered(omegaImpt)) {
         omegaImpt = headingCompensationConfig.getPID().calculate(drivetrain.getPigeon2().getRotation2d().getRadians(), headingSetpoint.getRadians());
       } else {
         headingSetpoint = drivetrain.getPigeon2().getRotation2d();
@@ -204,10 +205,12 @@ public class BreakerSwerveTeleopControl extends Command {
   public static class HeadingCompensationConfig {
     private LinearVelocity minActiveLinearVelocity;
     private AngularVelocity angularVelocityDeadband;
+    private Time omegaThresholdDelay;
     private PIDController pid;
-    public HeadingCompensationConfig(LinearVelocity minActiveLinearVelocity, AngularVelocity angularVelocityDeadband, PIDConstants pidConstants) {
+    public HeadingCompensationConfig(LinearVelocity minActiveLinearVelocity, AngularVelocity angularVelocityDeadband, Time omegaThresholdDelay, PIDConstants pidConstants) {
       this.angularVelocityDeadband = angularVelocityDeadband;
       this.minActiveLinearVelocity = minActiveLinearVelocity;
+      this.omegaThresholdDelay = omegaThresholdDelay;
       pid = new PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD);
       pid.enableContinuousInput(-Math.PI, Math.PI);
     }
@@ -216,8 +219,8 @@ public class BreakerSwerveTeleopControl extends Command {
         return angularVelocityDeadband;
     }
 
-    public AngularAcceleration getRateLimit() {
-      
+    public Time getOmegaThresholdDelay() {
+      return omegaThresholdDelay;
     }
 
     public LinearVelocity getMinActiveLinearVelocity() {
@@ -228,5 +231,27 @@ public class BreakerSwerveTeleopControl extends Command {
       return pid;
     }
     
+  }
+
+  private static class DelayedInputThresholdMonitor {
+    private double threshold;
+    private double delaySec;
+    private Timer timer;
+    public DelayedInputThresholdMonitor(double threshold, Time delay) {
+      this.threshold = threshold;
+      delaySec = delay.in(Units.Seconds);
+      timer = new Timer();
+    }
+
+    public boolean isTriggered(double input) {
+      if (Math.abs(input) < threshold) {
+        timer.start();
+        return timer.hasElapsed(delaySec);
+      } else {
+        timer.stop();
+        timer.reset();
+        return false;
+      }
+    }
   }
 }
