@@ -13,6 +13,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.ironmaple.simulation.SimulatedArena;
+
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
@@ -58,6 +60,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.ChassisAccels;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
@@ -111,6 +114,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     if (Utils.isSimulation()) {
       startSimThread();
     }
+    new BreakerSimSwerveDrivetrain(this, driveTrainConstants, modules);
     configPathPlanner();
     configChoreo();
   }
@@ -258,18 +262,18 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   private void startSimThread() {
-        lastSimTime = Utils.getCurrentTimeSeconds();
+        // lastSimTime = Utils.getCurrentTimeSeconds();
 
-        /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier = new Notifier(() -> {
-            final double currentTime = Utils.getCurrentTimeSeconds();
-            double deltaTime = currentTime - lastSimTime;
-            lastSimTime = currentTime;
+        // /* Run simulation at a faster rate so PID gains behave more reasonably */
+        // simNotifier = new Notifier(() -> {
+        //     final double currentTime = Utils.getCurrentTimeSeconds();
+        //     double deltaTime = currentTime - lastSimTime;
+        //     lastSimTime = currentTime;
 
-            /* use the measured time delta, get battery voltage from WPILib */
-            updateSimState(deltaTime, RobotController.getBatteryVoltage());
-        });
-        simNotifier.startPeriodic(1.0/constants.simUpdateFrequency);
+        //     /* use the measured time delta, get battery voltage from WPILib */
+        //     updateSimState(deltaTime, RobotController.getBatteryVoltage());
+        // });
+        // simNotifier.startPeriodic(1.0/constants.simUpdateFrequency);
   }
 
   public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig teleopControlConfig) {
@@ -293,6 +297,11 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         });
       }
       
+  }
+
+  @Override
+  public void simulationPeriodic() {
+      SimulatedArena.getInstance().simulationPeriodic();
   }
 
   public static class BreakerSwerveDrivetrainConstants extends SwerveDrivetrainConstants {
@@ -414,8 +423,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class MapleSimConfig {
       public DCMotor driveMotor = DCMotor.getKrakenX60Foc(1);
       public DCMotor steerMotor = DCMotor.getFalcon500Foc(1);
-      public SwerveModuleConstants moduleConstants;
-      public double tireCoefficientOfFriction;
+      public double tireCoefficientOfFriction = 1.01;
       public Mass robotMass = Units.Pound.of(100);
       public Distance bumperLengthX = Units.Inches.of(35);
       public Distance bumperWidthY = Units.Inches.of(35);
