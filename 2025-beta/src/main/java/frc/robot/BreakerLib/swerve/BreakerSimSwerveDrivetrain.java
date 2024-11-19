@@ -33,6 +33,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.BreakerLib.swerve.BreakerSimSwerveDrivetrain.BreakerSwerveModuleSim;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants;
 import frc.robot.BreakerLib.swerve.BreakerSwerveDrivetrain.BreakerSwerveDrivetrainConstants.MapleSimConfig;
+import frc.robot.BreakerLib.util.loging.BreakerLog;
 
 /** Add your docs here. */
 public class BreakerSimSwerveDrivetrain {
@@ -63,7 +64,7 @@ public class BreakerSimSwerveDrivetrain {
                 Math.abs(leadModuleConstants.LocationY * 2), 
                 swerveModuleSim, 
                 gyroSim),
-            new Pose2d(),
+            new Pose2d(2,2,new Rotation2d()),
             drivetrain,
             swerveModuleConstants
             );
@@ -99,6 +100,7 @@ public class BreakerSimSwerveDrivetrain {
             }
             gyroSim.addYaw(gyroDelta);
             gyroSim.setAngularVelocityZ(Units.RadiansPerSecond.of(gyroSimulation.getMeasuredAngularVelocityRadPerSec()));
+            BreakerLog.log("SwerveDrivetrain/Sim/GroundTruthPose", getSimulatedDriveTrainPose());
         } 
     }
 
@@ -140,6 +142,9 @@ public class BreakerSimSwerveDrivetrain {
             
             steerSim.setRawRotorPosition(moduleSim.getSteerRelativeEncoderPositionRad() / (2 * Math.PI));
             steerSim.setRotorVelocity(moduleSim.getSteerRelativeEncoderSpeedRadPerSec() / (2 * Math.PI));
+
+            encoderSim.setRawPosition(moduleSim.getSteerAbsoluteFacing().getRotations());
+            encoderSim.setVelocity(moduleSim.getSteerAbsoluteEncoderSpeedRadPerSec() / (2 * Math.PI));
         }
     }
 

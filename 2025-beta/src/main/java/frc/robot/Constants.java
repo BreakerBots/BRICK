@@ -65,7 +65,7 @@ public final class Constants {
                                 Units.MetersPerSecond.of(0.05), 
                                 Units.RadiansPerSecond.of(0.001), 
                                 Units.Seconds.of(0.2),
-                                new PIDConstants(1.5, 0, 0));// 2.8
+                                new PIDConstants(1.5, 0, 0));// 1.5
                 public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
                         .withHeadingCompensation(HEADING_COMPENSATION_CONFIG);
