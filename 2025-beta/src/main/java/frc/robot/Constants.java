@@ -68,8 +68,8 @@ public final class Constants {
                                 new PIDConstants(1.5, 0, 0));// 1.5
                 public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
-                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG);
-                        //.withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
+                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG)
+                        .withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
                 public static final LinearVelocity MAXIMUM_TRANSLATIONAL_VELOCITY = Units.MetersPerSecond.of(4.5);
                 public static final AngularVelocity MAXIMUM_ROTATIONAL_VELOCITY = Units.RadiansPerSecond.of(9.5);
                  // The steer motor uses any SwerveModule.SteerRequestType control request with the
