@@ -23,9 +23,6 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
     private final PIDController thetaController;
     private final SwerveRequest.ApplyFieldSpeeds request;
 
-
-
-
     public BreakerSwerveChoreoController(
         BreakerSwerveDrivetrain drivetrain,
         PIDController xController,
@@ -62,8 +59,8 @@ public class BreakerSwerveChoreoController implements BiConsumer<Pose2d, SwerveS
         );
 
         request.Speeds = targetSpeeds;
-        request.WheelForceFeedforwardsX = u.moduleForcesX();
-        request.WheelForceFeedforwardsY = u.moduleForcesY();
+        // request.WheelForceFeedforwardsX = u.moduleForcesX();
+        // request.WheelForceFeedforwardsY = u.moduleForcesY();
         drivetrain.setControl(request);
 
         BreakerLog.log("BreakerSwerveChoreoController/Goal", u);

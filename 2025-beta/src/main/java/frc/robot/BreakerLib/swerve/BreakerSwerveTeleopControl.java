@@ -94,6 +94,7 @@ public class BreakerSwerveTeleopControl extends Command {
     headingSetpoint = drivetrain.getPigeon2().getRotation2d();
     lastTimestamp = Timer.getFPGATimestamp();
     prevSetpoint = new SwerveSetpoint(drivetrain.getState().Speeds, drivetrain.getState().ModuleStates, DriveFeedforwards.zeros(drivetrain.getState().ModuleStates.length));
+    //drivetrain.setControl(new SwerveRequest.ApplyRobotSpeeds());
   }
 
   // Called every time the scheduler runs while the command is scheduled.

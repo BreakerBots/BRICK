@@ -7,9 +7,11 @@ package frc.robot;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
@@ -54,8 +56,8 @@ public final class Constants {
   }
 
   public static class AutoConstants {
-        public static final PIDConstants TRANSLATION_PID = new PIDConstants(10, 0, 0);
-        public static final PIDConstants ROTATION_PID = new PIDConstants(10, 0,0);
+        public static final PIDConstants TRANSLATION_PID = new PIDConstants(13, 0, 0);
+        public static final PIDConstants ROTATION_PID = new PIDConstants(15, 0,0);
         public static final ChoreoConfig CHOREO_CONFIG = new ChoreoConfig().withTranslationPID(TRANSLATION_PID).withRotationPID(ROTATION_PID);
   }
 
@@ -66,10 +68,10 @@ public final class Constants {
                                 Units.RadiansPerSecond.of(0.001), 
                                 Units.Seconds.of(0.2),
                                 new PIDConstants(1.5, 0, 0));// 1.5
-                public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
+                //public static final SetpointGenerationConfig SETPOINT_GENERATION_CONFIG = new SetpointGenerationConfig(MAXIMUM_MODULE_AZIMUTH_SPEED);
                 public static final TeleopControlConfig TELEOP_CONTROL_CONFIG = new TeleopControlConfig()
-                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG)
-                        .withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
+                        .withHeadingCompensation(HEADING_COMPENSATION_CONFIG);
+                        //.withSetpointGeneration(SETPOINT_GENERATION_CONFIG);
                 public static final LinearVelocity MAXIMUM_TRANSLATIONAL_VELOCITY = Units.MetersPerSecond.of(4.5);
                 public static final AngularVelocity MAXIMUM_ROTATIONAL_VELOCITY = Units.RadiansPerSecond.of(9.5);
                  // The steer motor uses any SwerveModule.SteerRequestType control request with the
@@ -80,8 +82,8 @@ public final class Constants {
                 // When using closed-loop control, the drive motor uses the control
                 // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
                 private static final Slot0Configs driveGains = new Slot0Configs()
-                .withKP(0.001).withKI(0).withKD(0)
-                .withKS(0.01).withKV(0.35).withKA(0);
+                .withKP(0.01).withKI(0).withKD(0)
+                .withKS(0.005).withKV(0.15).withKA(0.01);
 
                 // The closed-loop output type to use for the steer motors;
                 // This affects the PID/FF gains for the steer motors
@@ -98,7 +100,7 @@ public final class Constants {
                 // be null.
                 // Some configs will be overwritten; check the `with*InitialConfigs()` API
                 // documentation.
-                private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
+                private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration().withMotorOutput(new MotorOutputConfigs().withNeutralMode(NeutralModeValue.Brake));
                 private static final TalonFXConfiguration steerInitialConfigs = new TalonFXConfiguration()
                                 .withCurrentLimits(
                                                 new CurrentLimitsConfigs()
