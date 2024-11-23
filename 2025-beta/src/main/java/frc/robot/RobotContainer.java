@@ -8,14 +8,22 @@ import static frc.robot.Constants.DriveConstants.DRIVETRAIN_CONSTANTS;
 import static frc.robot.Constants.DriveConstants.HEADING_COMPENSATION_CONFIG;
 import static frc.robot.Constants.DriveConstants.TELEOP_CONTROL_CONFIG;
 
+import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
+import choreo.Choreo;
+import choreo.auto.AutoLoop;
+import choreo.auto.AutoTrajectory;
+import choreo.trajectory.SwerveSample;
+import choreo.trajectory.Trajectory;
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.networktables.BooleanSubscriber;
 import edu.wpi.first.units.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.util.WPILibVersion;
@@ -78,6 +86,13 @@ public class RobotContainer {
   
   }
   public Command getAutonomousCommand() {
-    return Commands.print("No autonomous command configured");
+    var autofactory = drivetrain.getAutoFactory();
+    Optional<Trajectory<SwerveSample>> trajOpt = Choreo.loadTrajectory("hello.traj");
+    if (trajOpt.isPresent()) {
+      var traj = trajOpt.get();
+      drivetrain.resetPose(traj.getInitialPose(DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red));
+      return autofactory.trajectory(traj, autofactory.voidLoop()).cmd();
+    }
+    return Commands.print("uh oh choreo auto failed");
   }
 }
