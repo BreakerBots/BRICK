@@ -56,8 +56,8 @@ public final class Constants {
   }
 
   public static class AutoConstants {
-        public static final PIDConstants TRANSLATION_PID = new PIDConstants(13, 0, 0);
-        public static final PIDConstants ROTATION_PID = new PIDConstants(15, 0,0);
+        public static final PIDConstants TRANSLATION_PID = new PIDConstants(7.5, 0, 0.8);
+        public static final PIDConstants ROTATION_PID = new PIDConstants(1.5, 0,1);
         public static final ChoreoConfig CHOREO_CONFIG = new ChoreoConfig().withTranslationPID(TRANSLATION_PID).withRotationPID(ROTATION_PID);
   }
 

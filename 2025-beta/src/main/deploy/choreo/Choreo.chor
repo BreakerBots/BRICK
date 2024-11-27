@@ -32,8 +32,8 @@
    "val":61.0
   },
   "inertia":{
-   "exp":"3 kg m ^ 2",
-   "val":3.0
+   "exp":"4 kg m ^ 2",
+   "val":4.0
   },
   "gearing":{
    "exp":"6.5",
