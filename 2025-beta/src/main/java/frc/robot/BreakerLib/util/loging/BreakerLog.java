@@ -27,6 +27,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Unit;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.PowerDistribution;
@@ -145,6 +146,12 @@ public class BreakerLog extends DogLog implements Subsystem {
         log(key + "/Status/ReceiveErrorCount", status.REC);
         log(key + "/Status/TransmitErrorCount", status.TEC);
         log(key + "/Status/TransmitBufferFullCount", status.TxFullCount);
+    }
+
+    public static void log(String key, Alert value) {
+        log(key + "/IsActive", value.get());
+        log(key + "/Text", value.getText());
+        log(key + "/Type", value.getType());
     }
 
     public static void addCANBus(CANBus value) {

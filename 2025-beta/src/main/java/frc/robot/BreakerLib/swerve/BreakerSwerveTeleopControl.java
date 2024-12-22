@@ -118,7 +118,8 @@ public class BreakerSwerveTeleopControl extends Command {
       linVec.rotateBy(drivetrain.getOperatorPerspectiveForward());
       xImpt = linVec.getX();
       yImpt = linVec.getY();
-      ChassisSpeeds desiredSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xImpt, yImpt, omegaImpt, drivetrain.getState().Pose.getRotation());
+      ChassisSpeeds desiredSpeeds = new ChassisSpeeds(xImpt, yImpt, omegaImpt);
+      desiredSpeeds.toFieldRelativeSpeeds(drivetrain.getState().Pose.getRotation());
       SwerveSetpoint curSetpoint = setpointGenerator.get().generateSetpoint(prevSetpoint, desiredSpeeds, curTimestamp - lastTimestamp);
       SwerveModuleState[] moduleStates = curSetpoint.moduleStates();
       double[] robotRelativeForcesXNewtons = curSetpoint.feedforwards().robotRelativeForcesXNewtons();
