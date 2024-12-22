@@ -170,6 +170,7 @@ public final class Constants {
                 private static final int kFrontLeftEncoderId = 20;
                 private static final double kFrontLeftEncoderOffset = 0.186279296875;
                 private static final boolean kFrontLeftSteerInvert = true;
+                private static final boolean kFrontLeftEncoderInvert = false;
                 private static final Translation2d kFrontLeftModulePosition = new Translation2d(
                         Units.Inches.of(9.84),
                         Units.Inches.of(9.84)
@@ -181,6 +182,7 @@ public final class Constants {
                 private static final int kFrontRightEncoderId = 21;
                 private static final double kFrontRightEncoderOffset = -0.09716796875;
                 private static final boolean kFrontRightSteerInvert = true;
+                private static final boolean kFrontRightEncoderInvert = false;
 
                 private static final Translation2d kFrontRightModulePosition = new Translation2d(
                         Units.Inches.of(9.84),
@@ -193,6 +195,7 @@ public final class Constants {
                 private static final int kBackLeftEncoderId = 22;
                 private static final double kBackLeftEncoderOffset = 0.3154296875;
                 private static final boolean kBackLeftSteerInvert = true;
+                private static final boolean kBackLeftEncoderInvert = false;
 
                 private static final Translation2d kBackLeftModulePosition = new Translation2d(
                         Units.Inches.of(-9.84),
@@ -205,6 +208,7 @@ public final class Constants {
                 private static final int kBackRightEncoderId = 23;
                 private static final double kBackRightEncoderOffset = -0.302978515625;
                 private static final boolean kBackRightSteerInvert = true;
+                private static final boolean kBackRightEncoderInvert = false;
                 private static final Translation2d kBackRightModulePosition = new Translation2d(
                         Units.Inches.of(-9.84),
                         Units.Inches.of(-9.84)
@@ -214,25 +218,25 @@ public final class Constants {
                                 .createModuleConstants(
                                                 kFrontLeftSteerMotorId, kFrontLeftDriveMotorId, kFrontLeftEncoderId,
                                                 kFrontLeftEncoderOffset, kFrontLeftModulePosition.getX(),
-                                                kFrontLeftModulePosition.getY(), kInvertLeftSide, kFrontLeftSteerInvert);
+                                                kFrontLeftModulePosition.getY(), kInvertLeftSide, kFrontLeftSteerInvert, kFrontLeftEncoderInvert);
 
                 public static final SwerveModuleConstants FRONT_RIGHT_MODULE_CONSTANTS = ConstantCreator
                                 .createModuleConstants(
                                                 kFrontRightSteerMotorId, kFrontRightDriveMotorId, kFrontRightEncoderId,
                                                 kFrontRightEncoderOffset, kFrontRightModulePosition.getX(),
-                                                kFrontRightModulePosition.getY(), kInvertRightSide, kFrontRightSteerInvert);
+                                                kFrontRightModulePosition.getY(), kInvertRightSide, kFrontRightSteerInvert, kFrontRightEncoderInvert);
 
                 public static final SwerveModuleConstants BACK_LEFT_MODULE_CONSTANTS = ConstantCreator
                                 .createModuleConstants(
                                                 kBackLeftSteerMotorId, kBackLeftDriveMotorId, kBackLeftEncoderId,
                                                 kBackLeftEncoderOffset, kBackLeftModulePosition.getX(),
-                                                kBackLeftModulePosition.getY(), kInvertLeftSide, kBackLeftSteerInvert);
+                                                kBackLeftModulePosition.getY(), kInvertLeftSide, kBackLeftSteerInvert, kBackLeftEncoderInvert);
 
                 public static final SwerveModuleConstants BACK_RIGHT_MODULE_CONSTANTS = ConstantCreator
                                 .createModuleConstants(
                                                 kBackRightSteerMotorId, kBackRightDriveMotorId, kBackRightEncoderId,
                                                 kBackRightEncoderOffset, kBackRightModulePosition.getX(),
-                                                kBackRightModulePosition.getY(), kInvertRightSide, kBackRightSteerInvert);
+                                                kBackRightModulePosition.getY(), kInvertRightSide, kBackRightSteerInvert, kBackRightEncoderInvert);
 
         }
 }
