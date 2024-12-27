@@ -4,41 +4,27 @@
 
 package frc.robot.BreakerLib.devices;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
-import edu.wpi.first.apriltag.AprilTagDetector;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.geometry.CoordinateAxis;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.CoordinateSystem;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.geometry.Twist2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.net.WPINetJNI;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.networktables.BooleanArraySubscriber;
 import edu.wpi.first.networktables.DoubleArraySubscriber;
 import edu.wpi.first.networktables.IntegerArraySubscriber;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.NetworkTablesJNI;
-import edu.wpi.first.networktables.PubSub;
 import edu.wpi.first.networktables.StringArraySubscriber;
+import edu.wpi.first.networktables.StructArraySubscriber;
 import edu.wpi.first.networktables.TimestampedInteger;
-import edu.wpi.first.util.WPIUtilJNI;
-import edu.wpi.first.util.struct.Struct;
-import edu.wpi.first.util.struct.StructDescriptor;
-import edu.wpi.first.util.struct.StructSerializable;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.BreakerLib.physics.BreakerVector3;
@@ -52,106 +38,53 @@ public class ZED extends SubsystemBase {
   private IntegerArraySubscriber idSub = table.getIntegerArrayTopic("id").subscribe(new long[0]);
   private StringArraySubscriber labelSub = table.getStringArrayTopic("label").subscribe(new String[0]);
   private IntegerSubscriber latencySub = table.getIntegerTopic("pipeline_latency").subscribe(0);
-  private DoubleArraySubscriber xVelPub = table.getDoubleArrayTopic("x_vel").subscribe(new double[0]);
-  private DoubleArraySubscriber yVelPub = table.getDoubleArrayTopic("y_vel").subscribe(new double[0]);
-  private DoubleArraySubscriber zVelPub = table.getDoubleArrayTopic("z_vel").subscribe(new double[0]);
-  private DoubleArraySubscriber xPub = table.getDoubleArrayTopic("x").subscribe(new double[0]);
-  private DoubleArraySubscriber yPub = table.getDoubleArrayTopic("y").subscribe(new double[0]);
-  private DoubleArraySubscriber zPub = table.getDoubleArrayTopic("z").subscribe(new double[0]);
-  private DoubleArraySubscriber boxLenPub = table.getDoubleArrayTopic("box_l").subscribe(new double[0]);
-  private DoubleArraySubscriber boxWidthPub = table.getDoubleArrayTopic("box_w").subscribe(new double[0]);
-  private DoubleArraySubscriber boxHeightPub = table.getDoubleArrayTopic("box_h").subscribe(new double[0]);
-  private DoubleArraySubscriber confPub = table.getDoubleArrayTopic("conf").subscribe(new double[0]);
-  private BooleanArraySubscriber isVisPub = table.getBooleanArrayTopic("is_visible").subscribe(new boolean[0]);
-  private BooleanArraySubscriber isMovingPub = table.getBooleanArrayTopic("is_moving").subscribe(new boolean[0]);
+  // private DoubleArraySubscriber xVelPub = table.getDoubleArrayTopic("x_vel").subscribe(new double[0]);
+  // private DoubleArraySubscriber yVelPub = table.getDoubleArrayTopic("y_vel").subscribe(new double[0]);
+  // private DoubleArraySubscriber zVelPub = table.getDoubleArrayTopic("z_vel").subscribe(new double[0]);
+  private StructArraySubscriber<Translation3d> translationSub = table.getStructArrayTopic("translation", Translation3d.struct).subscribe(new Translation3d[0]);
+  private StructArraySubscriber<Translation3d> boxSub = table.getStructArrayTopic("box", Translation3d.struct).subscribe(new Translation3d[0]);
+  private DoubleArraySubscriber confSub = table.getDoubleArrayTopic("conf").subscribe(new double[0]);
+  private BooleanArraySubscriber isVisSub = table.getBooleanArrayTopic("is_visible").subscribe(new boolean[0]);
+  private BooleanArraySubscriber isMovingSub = table.getBooleanArrayTopic("is_moving").subscribe(new boolean[0]);
   private long lastHeartbeat = -1;
   private Timer timeSinceLastUpdate;
 
-  private Transform3d robotToZedLeftEye;
-  private CoordinateSystem coordinateSystem;
+  private RefrenceFrame cameraRefrenceFrameInRobotSpace;
+  private TimeInterpolatableBuffer<Pose3d> robotPoseHistory;
+  private Supplier<Pair<Double, Pose3d>> robotPoseAtTimeSupplier;
 
-  public ZED(Function<Double, Pose2d> robotPoseAtTimeFunc, Function<Double, ChassisSpeeds> chassisSpeedsAtTimeFunc, Transform3d robotToZedLeftEye) {
+  private DetectionResults latestResult;
 
-    coordinateSystem = BreakerMath.getCoordinateSystemFromRotation(robotToZedLeftEye.getRotation());
-    this.robotToZedLeftEye = robotToZedLeftEye;
+
+  public ZED(Supplier<Pair<Double, Pose3d>> robotPoseAtTimeSupplier, Transform3d robotToZedLeftEye) {
+    cameraRefrenceFrameInRobotSpace = new RefrenceFrame(robotToZedLeftEye);
+    this.robotPoseAtTimeSupplier = robotPoseAtTimeSupplier;
+    latestResult = new DetectionResults(new TreeMap<>(), Timer.getTimestamp());
+    timeSinceLastUpdate = new Timer();
   }
-
+  
   
   public Transform3d getRobotToCameraTransform() {
-    return robotToZedLeftEye;
+    return cameraRefrenceFrameInRobotSpace.getParentToFrameTransform();
   }
 
-  private ArrayList<TrackedObject> trackedObjects;
-
-  public ArrayList<TrackedObject> getTrackedObjects() {
-    return trackedObjects;
+  public boolean isConnected() {
+    return (timeSinceLastUpdate.get() < 0.3) && (lastHeartbeat > -1) ;
   }
 
   public Pose3d getCameraPose() {
     return null;
   }
 
-
-  public static final record ObjectDimensions(double width, double height, double length) {}
-
-  public static final class ObjectMotion {
-    private BreakerVector3 observedCameraRelativeObjectMotion;
-    private CoordinateSystem cameraCoordinateSystem;
-    private Pose3d globalRobotPose;
-    ObjectMotion(double timestamp, 
-    BreakerVector3 observedCameraRelativeObjectMotion, 
-    Pose3d globalRobotPose,
-    ChassisSpeeds robotSpeedsInWorld,
-    CoordinateSystem cameraCoordinateSystem) {
-
+  public DetectionResults getDetectionResults() {
+    updateRobotPoseHistory();
+    TimestampedInteger[] latencyQueue = latencySub.readQueue();
+    if (latencyQueue.length > 0) {
+      TimestampedInteger latency = latencyQueue[latencyQueue.length - 1];
+      double captureTimestamp = (((double)(latency.timestamp)) - (((double)(latency.value)) / 1000.0)) / ((double)(1e6));
+      updateDetections(captureTimestamp);
     }
-    
-    public BreakerVector3 getCameraRelative () {
-      return observedCameraRelativeObjectMotion;
-    }
-
-    public BreakerVector3 getRobotRelative() {
-      return new BreakerVector3(CoordinateSystem.convert(getCameraRelative().getAsTranslation(), cameraCoordinateSystem, CoordinateSystem.NWU()));
-    }
-
-    public BreakerVector3 getGlobal() {
-      CoordinateSystem robotSys = BreakerMath.getCoordinateSystemFromRotation(globalRobotPose.getRotation());
-      Translation3d robotRel = getRobotRelative().getAsTranslation();
-      Translation3d rawWorld = CoordinateSystem.convert(robotRel, robotSys, CoordinateSystem.NWU()).minus(robotRel);
-      
-      return new BreakerVector3();
-    }
-  }
-  
-
-  public static final class ObjectPosition {
-    private double timestamp;
-    private ObjectMotion motion;
-    private Translation3d cameraToObjectTranslation;
-    public ObjectPosition(double timestamp, ObjectMotion motion, Translation3d cameraToObjectTranslation, Transform3d robotToCameraTransform, Pose2d globalRobotPose) {
-
-      
-    }
-
-    public Translation3d getCameraToObject(boolean compensateForLatency) {
-      double latency = Timer.getFPGATimestamp() - timestamp;
-      Translation3d pos = cameraToObjectTranslation;
-      if (compensateForLatency) {
-        Translation3d trans = motion.getCameraRelative().times(latency).getAsTranslation();
-        pos = pos.plus(trans);
-      }
-      return pos;
-    }
-
-    public Translation3d getRobotToObject(boolean compensateForLatency) {
-      Translation3d camRelTrans = getCameraToObject(false);
-      camRelTrans.rotateBy(null);
-      return null;
-    }
-
-    public Translation3d getGlobal(boolean compensateForLatency) {
-      return null;
-    }
+    return latestResult;
   }
 
   @Override
@@ -160,25 +93,190 @@ public class ZED extends SubsystemBase {
     if (newHb > lastHeartbeat && newHb != -1) {
       timeSinceLastUpdate.reset();
     }
-    // This method will be called once per scheduler run
+    updateRobotPoseHistory();
+  }
+  
+  private Pair<Double, Pose3d> updateRobotPoseHistory() {
+    Pair<Double, Pose3d> curPose = robotPoseAtTimeSupplier.get();
+    if (MathUtil.isNear(curPose.getFirst(), robotPoseHistory.getInternalBuffer().lastKey(), 1e-5)) {
+      robotPoseHistory.addSample(curPose.getFirst(), curPose.getSecond());
+    }
+    return curPose;
   }
 
-  private void readTargets() {
+  private Pose3d getPoseAtTime(double timestamp) {
+    Pair<Double, Pose3d> latest = updateRobotPoseHistory();
+    Optional<Pose3d> opt = robotPoseHistory.getSample(timestamp);
+    return opt.orElse(latest.getSecond());
+  }
+  
+  private DetectionResults updateDetections(double timestamp) {
+    TreeMap<Long, TrackedObject> prevTrackedObjects = latestResult.getTrackedObjectsMap();
+
+    Pose3d robotPose = getPoseAtTime(timestamp);
+    RefrenceFrame robotFrameInWorld = new RefrenceFrame(robotPose);
+
     long[] ids = idSub.get();
     String[] lables = labelSub.get();
-    TimestampedInteger latency = latencySub.getAtomic();
-    double captureTimestamp = (((double)(latency.timestamp)) - (((double)(latency.value)) / 1000.0)) / ((double)(1e6));
+    Translation3d[] translations = translationSub.get();
+    Translation3d[] boxes = boxSub.get();
+    double[] confs = confSub.get();
+    boolean[] isVisArr = isVisSub.get();
+    boolean[] isMovArr = isMovingSub.get();
+
+    latestResult.results.clear();
     
     for (int i = 0; i < ids.length; i++) {
+      long id = ids[i];
+      Optional<TrackedObject> prevInstance = Optional.ofNullable(prevTrackedObjects.get(id));
+      String lable = lables[i];
+      boolean isVis = isVisArr[i];
+      boolean isMov = isMovArr[i]; 
+      double conf = confs[i];
+
+      Translation3d transCamSpace = translations[i];
+      RawObjectPosition positionRaw = RawObjectPosition.fromCamSpaceTranslation(transCamSpace, cameraRefrenceFrameInRobotSpace, robotFrameInWorld, timestamp);
       
+      ObjectVelocity vel = new ObjectVelocity();
+      if (prevInstance.isPresent()) {
+        vel = new ObjectVelocity(prevInstance.get().position().getRawObjectPosition(), positionRaw, isMov);
+      }
+
+      ObjectPosition position = new ObjectPosition(positionRaw, vel);
+      ObjectDimensions dimensions = new ObjectDimensions(boxes[i]);
+
+
+      TrackedObject object = new TrackedObject(id, lable, timestamp, vel, position, dimensions, conf, isVis, isMov);
+      latestResult.results.put(id, object);
+    }
+    return latestResult;
+  }
+
+  public static final class ObjectVelocity {
+    private BreakerVector3 velocityCameraSpace;
+    private BreakerVector3 velocityRobotSpace;
+    private BreakerVector3 velocityFieldSpace;
+
+    public ObjectVelocity() {
+      velocityCameraSpace = new BreakerVector3();
+      velocityRobotSpace = new BreakerVector3();
+      velocityFieldSpace = new BreakerVector3();
+    }
+
+    private ObjectVelocity(RawObjectPosition previousPose, RawObjectPosition currentPose, boolean isMoveing) {
+      double dt = currentPose.timestamp() - previousPose.timestamp();
+      velocityCameraSpace = new BreakerVector3(currentPose.translationCameraSpace.minus(previousPose.translationCameraSpace)).div(dt);
+      velocityRobotSpace = new BreakerVector3(currentPose.translationRobotSpace.minus(previousPose.translationRobotSpace)).div(dt);
+      if (isMoveing) {
+        velocityFieldSpace = new BreakerVector3(currentPose.translationFieldSpace.minus(previousPose.translationFieldSpace)).div(dt);
+      } else {
+        velocityFieldSpace = new BreakerVector3();
+      }
+    }
+
+    public BreakerVector3 getVelocityCameraSpace() {
+        return velocityCameraSpace;
+    }
+
+    public BreakerVector3 getVelocityFieldSpace() {
+        return velocityFieldSpace;
+    }
+
+    public BreakerVector3 getVelocityRobotSpace() {
+        return velocityRobotSpace;
+    }
+    
+  }
+
+  public static final class ObjectPosition {
+    private RawObjectPosition position;
+    private ObjectVelocity velocity;
+    private ObjectPosition(RawObjectPosition currentPose, ObjectVelocity velocity) {
+      position = currentPose;
+      this.velocity = velocity;
+    }
+
+    public Translation3d getPositionCameraSpace(boolean compensateForLatency) {
+      var pos = position.translationCameraSpace();
+      if (compensateForLatency) {
+        pos = pos.plus(velocity.getVelocityCameraSpace().times(Timer.getTimestamp() - position.timestamp()).getAsTranslation());
+      }
+      return pos;
+    }
+
+    public Translation3d getPositionRobotSpace(boolean compensateForLatency) {
+      var pos = position.translationRobotSpace();
+      if (compensateForLatency) {
+        pos = pos.plus(velocity.getVelocityRobotSpace().times(Timer.getTimestamp() - position.timestamp()).getAsTranslation());
+      }
+      return pos;
+    }
+
+    public Translation3d getPositionFieldSpace(boolean compensateForLatency) {
+      var pos = position.translationFieldSpace();
+      if (compensateForLatency) {
+        pos = pos.plus(velocity.getVelocityFieldSpace().times(Timer.getTimestamp() - position.timestamp()).getAsTranslation());
+      }
+      return pos;
+    }
+
+    RawObjectPosition getRawObjectPosition() {
+      return position;
     }
   }
 
-  public static final record TrackedObject(
+  
+  public static final record ObjectDimensions(double width, double height, double length) {
+    private ObjectDimensions(Translation3d translationRepresentation) {
+      this(translationRepresentation.getX(), translationRepresentation.getZ(), translationRepresentation.getY());
+    }
+  }
+  
+
+  public static final record RawObjectPosition(Translation3d translationCameraSpace, Translation3d translationRobotSpace, Translation3d translationFieldSpace, double timestamp) {
+    public RawObjectPosition() {
+      this(new Translation3d(), new Translation3d(), new Translation3d(), 0.0);
+    }
+    public static RawObjectPosition fromCamSpaceTranslation(Translation3d translationCameraSpace, RefrenceFrame cameraRefrenceFrameInRobotSpace, RefrenceFrame robotRefrenceFrameInFieldSpace, double timestamp) {
+      Translation3d robotSpaceTrans = cameraRefrenceFrameInRobotSpace.convertToParentFrame(translationCameraSpace);
+      Translation3d fieldSpaceTrans = robotRefrenceFrameInFieldSpace.convertToParentFrame(robotSpaceTrans);
+      return new RawObjectPosition(translationCameraSpace, robotSpaceTrans, fieldSpaceTrans, timestamp);
+    }
+  }
+
+  private static class RefrenceFrame {
+    private Transform3d parentToFrameTransfrom;
+    private CoordinateSystem coordinateSystem;
+    public RefrenceFrame(Transform3d parentToFrameTransfrom) {
+      this.parentToFrameTransfrom = parentToFrameTransfrom;
+      coordinateSystem = BreakerMath.getCoordinateSystemFromRotation(parentToFrameTransfrom.getRotation());
+    }
+
+    public RefrenceFrame(Pose3d frameOriginInParentSpace) {
+      this(frameOriginInParentSpace.minus(Pose3d.kZero));
+    }
+
+    public Translation3d convertToParentFrame(Translation3d val) {
+      val = CoordinateSystem.convert(val, coordinateSystem, CoordinateSystem.NWU());
+      val = val.minus(parentToFrameTransfrom.getTranslation());
+      return val;
+    }
+
+    public CoordinateSystem getCoordinateSystem() {
+        return coordinateSystem;
+    }
+
+    public Transform3d getParentToFrameTransform() {
+        return parentToFrameTransfrom;
+    }
+    
+  }
+
+  public static record TrackedObject(
       long objectID, 
       String label,
       double timestamp,
-      ObjectMotion motion,
+      ObjectVelocity velocity,
       ObjectPosition position,
       ObjectDimensions cameraRelitiveDimensions,
       double confidance,
@@ -200,4 +298,26 @@ public class ZED extends SubsystemBase {
     }
     
   } 
+
+  public class DetectionResults {
+    private TreeMap<Long, TrackedObject> results;
+    private double timestamp;
+    private DetectionResults(TreeMap<Long, TrackedObject> results, double timestamp) {
+      this.results = results;
+      this.timestamp = timestamp;
+    }
+
+    public ArrayList<TrackedObject> getTrackedObjects() {
+      return new ArrayList<>(results.values());
+    }
+  
+    public TreeMap<Long, TrackedObject> getTrackedObjectsMap() {
+      return new TreeMap<>(results);
+    }
+
+    public double getTimestamp() {
+      return timestamp;
+    }
+
+  }
 }

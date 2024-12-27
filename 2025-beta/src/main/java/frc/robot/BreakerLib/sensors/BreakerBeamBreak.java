@@ -4,24 +4,45 @@
 
 package frc.robot.BreakerLib.sensors;
 
+import java.util.function.BooleanSupplier;
+
+import com.ctre.phoenix6.configs.ProximityParamsConfigs;
+import com.ctre.phoenix6.hardware.CANrange;
+
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class BreakerBeamBreak extends SubsystemBase {
+public class BreakerBeamBreak extends SubsystemBase implements BooleanSupplier, AutoCloseable {
   /** Creates a new BreakerBeamBreak. */
-  private DigitalInput input;
+  private BooleanSupplier isBrokenSupplier;
+  private Runnable closeIO;
   private boolean brokenOnTrue, prevRead, hasChanged;
   private final Timer timeSinceLastChange = new Timer();
-  public BreakerBeamBreak(int imputPortDIO, boolean brokenOnTrue) {
-    input = new DigitalInput(imputPortDIO);
+
+  public BreakerBeamBreak(BooleanSupplier isBroken) {
+    this(isBroken, () -> {});
+  }
+
+
+  private BreakerBeamBreak(BooleanSupplier isBroken, Runnable closeIO) {
+    isBrokenSupplier = isBroken;
+    this.closeIO = closeIO;
     prevRead = !brokenOnTrue;
     hasChanged = false;
-    this.brokenOnTrue = brokenOnTrue;
+  }
+
+  public static BreakerBeamBreak fromDIO(int inputChannelDIO, boolean brokenOnTrue) {
+    var dio = new DigitalInput(inputChannelDIO);
+    return new BreakerBeamBreak(() -> dio.get() == brokenOnTrue, () -> dio.close());
+  }
+
+  public static BreakerBeamBreak fromCANrange(CANrange canrange) {
+    return new BreakerBeamBreak(() -> canrange.getIsDetected().getValue(), () -> canrange.close());
   }
 
   public boolean isBroken() {
-    return brokenOnTrue ? input.get() : !input.get();
+    return isBrokenSupplier.getAsBoolean();
   }
 
   public boolean hasChanged() {
@@ -39,5 +60,15 @@ public class BreakerBeamBreak extends SubsystemBase {
       timeSinceLastChange.reset();
       timeSinceLastChange.start();
     }
+  }
+
+  @Override
+  public boolean getAsBoolean() {
+    return isBrokenSupplier.getAsBoolean();
+  }
+
+  @Override
+  public void close() throws Exception {
+    closeIO.run();
   }
 }
