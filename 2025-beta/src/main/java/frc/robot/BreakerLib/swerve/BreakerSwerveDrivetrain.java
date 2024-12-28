@@ -109,7 +109,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       startSimThread();
     }
     new BreakerSimSwerveDrivetrain(this, driveTrainConstants, modules);
-    configPathPlanner();
+    // configPathPlanner();
     configChoreo();
   }
   
@@ -205,38 +205,38 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     }
 
 
-  private void configPathPlanner() {
-    if (constants.pathplannerConfig.robotConfig.isPresent()) {
-      double driveBaseRadius = 0;
-      for (var moduleLocation : getModuleLocations()) {
-          driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
-      }
+  // private void configPathPlanner() {
+    // if (constants.pathplannerConfig.robotConfig.isPresent()) {
+      // double driveBaseRadius = 0;
+      // for (var moduleLocation : getModuleLocations()) {
+          // driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
+      // }
 
-      SwerveRequest.ApplyRobotSpeeds request = new SwerveRequest.ApplyRobotSpeeds();
-      request.DriveRequestType = DriveRequestType.Velocity;
-      BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
-        request.Speeds = speeds;
-        request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
-        request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
-        setControl(request);
-      };
+      // SwerveRequest.ApplyRobotSpeeds request = new SwerveRequest.ApplyRobotSpeeds();
+      // request.DriveRequestType = DriveRequestType.Velocity;
+      // BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
+        // request.Speeds = speeds;
+        // request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
+        // request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
+        // setControl(request);
+      // };
 
-      AutoBuilder.configure(
-        ()->this.getState().Pose, // Supplier of current robot pose
-        this::resetPose,  // Consumer for seeding pose against auto
-        this::getCurrentChassisSpeeds,
-        output, // Consumer of ChassisSpeeds to drive the robot
-        new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
-        constants.pathplannerConfig.robotConfig.get(),
-        () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
-        this); // Subsystem for requirements
-    }
-  }
+      // AutoBuilder.configure(
+        // ()->this.getState().Pose, // Supplier of current robot pose
+        // this::resetPose,  // Consumer for seeding pose against auto
+        // this::getCurrentChassisSpeeds,
+        // output, // Consumer of ChassisSpeeds to drive the robot
+        // new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
+        // constants.pathplannerConfig.robotConfig.get(),
+        // () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
+        // this); // Subsystem for requirements
+    // }
+  // }
 
   private void configChoreo() {
-    PIDController x = new PIDController(constants.choreoConfig.translationPID.kP, constants.choreoConfig.translationPID.kI, constants.choreoConfig.translationPID.kD);
-    PIDController y = new PIDController(constants.choreoConfig.translationPID.kP, constants.choreoConfig.translationPID.kI, constants.choreoConfig.translationPID.kD);
-    PIDController r = new PIDController(constants.choreoConfig.rotationPID.kP, constants.choreoConfig.rotationPID.kI, constants.choreoConfig.rotationPID.kD);
+    PIDController x = new PIDController(constants.choreoConfig.translationPID.kP(), constants.choreoConfig.translationPID.kI(), constants.choreoConfig.translationPID.kD());
+    PIDController y = new PIDController(constants.choreoConfig.translationPID.kP(), constants.choreoConfig.translationPID.kI(), constants.choreoConfig.translationPID.kD());
+    PIDController r = new PIDController(constants.choreoConfig.rotationPID.kP(), constants.choreoConfig.rotationPID.kI(), constants.choreoConfig.rotationPID.kD());
     autoFactory = Choreo.createAutoFactory(
       this, 
       () -> this.getState().Pose, 
@@ -304,7 +304,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public Rotation2d blueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
     public Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
     public ChoreoConfig choreoConfig = new ChoreoConfig();
-    public PathplannerConfig pathplannerConfig = new PathplannerConfig();
+    // public PathplannerConfig pathplannerConfig = new PathplannerConfig();
     public MapleSimConfig simulationConfig = new MapleSimConfig();
 
     public BreakerSwerveDrivetrainConstants() {
@@ -354,10 +354,10 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       return this;
     }
 
-    public BreakerSwerveDrivetrainConstants withPathplannerConfig(PathplannerConfig pathplannerConfig) {
-      this.pathplannerConfig = pathplannerConfig;
-      return this;
-    }
+    // public BreakerSwerveDrivetrainConstants withPathplannerConfig(PathplannerConfig pathplannerConfig) {
+      // this.pathplannerConfig = pathplannerConfig;
+      // return this;
+    // }
 
     public static class ChoreoConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
@@ -381,38 +381,38 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       }
     }
 
-    public static class PathplannerConfig {
-      public PIDConstants translationPID = new PIDConstants(10, 0, 0);
-      public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public Optional<RobotConfig> robotConfig = getRobotConfigFromGUI();
-      public PathplannerConfig() {
-      }
+    // public static class PathplannerConfig {
+      // public PIDConstants translationPID = new PIDConstants(10, 0, 0);
+      // public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
+      // public Optional<RobotConfig> robotConfig = getRobotConfigFromGUI();
+      // public PathplannerConfig() {
+      // }
 
-      private Optional<RobotConfig> getRobotConfigFromGUI() {
-        try {
-          return Optional.of(RobotConfig.fromGUISettings());
-        } catch(Exception e) {
-          DriverStation.reportError("Failed to load RobotConfig from PathPlanner GUI", true);
-          return Optional.empty();
-        }
-      }
+      // private Optional<RobotConfig> getRobotConfigFromGUI() {
+        // try {
+          // return Optional.of(RobotConfig.fromGUISettings());
+        // } catch(Exception e) {
+          // DriverStation.reportError("Failed to load RobotConfig from PathPlanner GUI", true);
+          // return Optional.empty();
+        // }
+      // }
 
 
-      public PathplannerConfig withTranslationPID(PIDConstants translationPID) {
-        this.translationPID = translationPID;
-        return this;
-      }
+      // public PathplannerConfig withTranslationPID(PIDConstants translationPID) {
+        // this.translationPID = translationPID;
+        // return this;
+      // }
 
-      public PathplannerConfig withRotationPID(PIDConstants rotationPID) {
-        this.rotationPID = rotationPID;
-        return this;
-      }
+      // public PathplannerConfig withRotationPID(PIDConstants rotationPID) {
+        // this.rotationPID = rotationPID;
+        // return this;
+      // }
 
-      public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
-        this.robotConfig = Optional.of(robotConfig);
-        return this;
-      }
-    }
+      // public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
+        // this.robotConfig = Optional.of(robotConfig);
+        // return this;
+      // }
+    // }
 
     public static class MapleSimConfig {
       public DCMotor driveMotor = DCMotor.getKrakenX60Foc(1);
