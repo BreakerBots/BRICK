@@ -2,7 +2,7 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.BreakerLib.devices;
+package frc.robot.BreakerLib.drivers;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -18,12 +18,14 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.networktables.BooleanArraySubscriber;
 import edu.wpi.first.networktables.DoubleArraySubscriber;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.networktables.IntegerArraySubscriber;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringArraySubscriber;
 import edu.wpi.first.networktables.StructArraySubscriber;
+import edu.wpi.first.networktables.StructSubscriber;
 import edu.wpi.first.networktables.TimestampedInteger;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -33,19 +35,20 @@ import frc.robot.BreakerLib.util.math.BreakerMath;
 public class ZED extends SubsystemBase {
   /** Creates a new ZED. */
   private NetworkTableInstance inst = NetworkTableInstance.getDefault();
-  private NetworkTable table = inst.getTable("ZED_detections");
-  private IntegerSubscriber heartbeatSub = table.getIntegerTopic("heartbeat").subscribe(-1);
-  private IntegerArraySubscriber idSub = table.getIntegerArrayTopic("id").subscribe(new long[0]);
-  private StringArraySubscriber labelSub = table.getStringArrayTopic("label").subscribe(new String[0]);
-  private IntegerSubscriber latencySub = table.getIntegerTopic("pipeline_latency").subscribe(0);
-  // private DoubleArraySubscriber xVelPub = table.getDoubleArrayTopic("x_vel").subscribe(new double[0]);
-  // private DoubleArraySubscriber yVelPub = table.getDoubleArrayTopic("y_vel").subscribe(new double[0]);
-  // private DoubleArraySubscriber zVelPub = table.getDoubleArrayTopic("z_vel").subscribe(new double[0]);
-  private StructArraySubscriber<Translation3d> translationSub = table.getStructArrayTopic("translation", Translation3d.struct).subscribe(new Translation3d[0]);
-  private StructArraySubscriber<Translation3d> boxSub = table.getStructArrayTopic("box", Translation3d.struct).subscribe(new Translation3d[0]);
-  private DoubleArraySubscriber confSub = table.getDoubleArrayTopic("conf").subscribe(new double[0]);
-  private BooleanArraySubscriber isVisSub = table.getBooleanArrayTopic("is_visible").subscribe(new boolean[0]);
-  private BooleanArraySubscriber isMovingSub = table.getBooleanArrayTopic("is_moving").subscribe(new boolean[0]);
+  private IntegerSubscriber heartbeatSub;
+  private IntegerArraySubscriber idSub;
+  private StringArraySubscriber labelSub;
+  private IntegerSubscriber latencySub;
+  private StructArraySubscriber<Translation3d> translationSub;
+  private StructArraySubscriber<Translation3d> boxSub;
+  private DoubleArraySubscriber confSub;
+  private BooleanArraySubscriber isVisSub;
+  private BooleanArraySubscriber isMovingSub;
+
+  private StructSubscriber<Pose3d> cameraPoseSub;
+  private DoubleSubscriber camPoseLatencySub;
+  private DoubleSubscriber camPoseConfSub;
+
   private long lastHeartbeat = -1;
   private Timer timeSinceLastUpdate;
 
@@ -56,14 +59,31 @@ public class ZED extends SubsystemBase {
   private DetectionResults latestResult;
 
 
-  public ZED(Supplier<Pair<Double, Pose3d>> robotPoseAtTimeSupplier, Transform3d robotToZedLeftEye) {
+  public ZED(String cameraName, Supplier<Pair<Double, Pose3d>> robotPoseAtTimeSupplier, Transform3d robotToZedLeftEye) {
     cameraRefrenceFrameInRobotSpace = new RefrenceFrame(robotToZedLeftEye);
     this.robotPoseAtTimeSupplier = robotPoseAtTimeSupplier;
     latestResult = new DetectionResults(new TreeMap<>(), Timer.getTimestamp());
     timeSinceLastUpdate = new Timer();
+    configNT(cameraName);
   }
-  
-  
+
+  private void configNT(String name) {
+    NetworkTable mainTable = inst.getTable(name);
+    NetworkTable table = mainTable.getSubTable("detections");
+    heartbeatSub = table.getIntegerTopic("heartbeat").subscribe(-1);
+    idSub = table.getIntegerArrayTopic("id").subscribe(new long[0]);
+    labelSub = table.getStringArrayTopic("label").subscribe(new String[0]);
+    latencySub = table.getIntegerTopic("pipeline_latency").subscribe(0);
+    translationSub = table.getStructArrayTopic("translation", Translation3d.struct).subscribe(new Translation3d[0]);
+    boxSub = table.getStructArrayTopic("box", Translation3d.struct).subscribe(new Translation3d[0]);
+    confSub = table.getDoubleArrayTopic("conf").subscribe(new double[0]);
+    isVisSub = table.getBooleanArrayTopic("is_visible").subscribe(new boolean[0]);
+    NetworkTable camPoseTable = mainTable.getSubTable("pose");
+    cameraPoseSub = camPoseTable.getStructTopic("cam_pose", Pose3d.struct).subscribe(new Pose3d());
+    camPoseLatencySub = camPoseTable.getDoubleTopic("cam_pose_latency").subscribe(0.0);  
+    camPoseConfSub = camPoseTable.getDoubleTopic("cam_pose_conf").subscribe(0.0);  
+  }
+
   public Transform3d getRobotToCameraTransform() {
     return cameraRefrenceFrameInRobotSpace.getParentToFrameTransform();
   }
@@ -319,5 +339,18 @@ public class ZED extends SubsystemBase {
       return timestamp;
     }
 
+  }
+
+  public class LocalizationResults {
+    private Pose3d cameraPose;
+    private double timestamp;
+    private double confidance;
+    private Transform3d robotToCam;
+    private LocalizationResults(Pose3d cameraPose, double timestamp, double confidance, Transform3d robotToCam) {
+      this.cameraPose = cameraPose;
+      this.timestamp = timestamp;
+      this.confidance = confidance;
+      this.robotToCam = robotToCam;
+    }
   }
 }
