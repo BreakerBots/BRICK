@@ -6,35 +6,32 @@ package frc.robot.BreakerLib.swerve;
 
 import static java.lang.Math.abs;
 
-import java.sql.Driver;
-import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.ironmaple.simulation.SimulatedArena;
-
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
-import com.ctre.phoenix6.swerve.SwerveDrivetrain;
-import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
-import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
-import com.ctre.phoenix6.swerve.SwerveModuleConstants;
-import com.ctre.phoenix6.swerve.SwerveRequest;
-import com.ctre.phoenix6.swerve.jni.SwerveJNI;
-import frc.robot.BreakerLib.PIDConstants;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveDrivetrain;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveModule;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest.ApplyChassisSpeeds;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.ReplanningConfig;
 
 import choreo.Choreo;
+import choreo.Choreo.ChoreoTrajectoryCache;
 import choreo.auto.AutoFactory;
-import choreo.auto.AutoFactory.AutoBindings;
+import choreo.auto.AutoFactory.ChoreoAutoBindings;
 import choreo.trajectory.SwerveSample;
 import choreo.trajectory.Trajectory;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.geometry.proto.Twist2dProto;
@@ -42,44 +39,37 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.Units;
-import edu.wpi.first.units.measure.Distance;
-import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.ChassisAccels;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensationConfig;
-import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
 import frc.robot.BreakerLib.util.loging.BreakerLog;
 import frc.robot.BreakerLib.util.math.BreakerMath;
+import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
+import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 
-public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
+public class BreakerSwerveDrivetrain extends LegacySwerveDrivetrain implements Subsystem {
 
   /** Creates a new BreakerSwerveDrivetrain. */
   protected Notifier simNotifier = null;
   protected double lastSimTime;
   protected final double commonMaxModuleSpeed;
   protected final BreakerSwerveDrivetrainConstants constants;
+  protected final SwerveRequest.ApplyChassisSpeeds autoRequest = new SwerveRequest.ApplyChassisSpeeds();
   protected Consumer<SwerveDriveState> userTelemetryCallback = null;
   /* Keep track if we've ever applied the operator perspective before or not */
   protected boolean hasAppliedOperatorPerspective = false;
   protected ChassisSpeeds prevChassisSpeeds = new ChassisSpeeds();
   protected ChassisAccels chassisAccels = new ChassisAccels();
-  protected Rotation2d fieldDirection = new Rotation2d();
 
   protected AutoFactory autoFactory;
-
-  protected ReentrantLock stateLock = new ReentrantLock();
-
 
   public BreakerSwerveDrivetrain(
     BreakerSwerveDrivetrainConstants driveTrainConstants, 
@@ -99,32 +89,31 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     ) {
     super(driveTrainConstants, driveTrainConstants.odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
     this.constants = driveTrainConstants;
-    super.registerTelemetry(this::telemetryCallbackWrapperFunction);
+    m_telemetryFunction = this::telemetryCallbackWrapperFunction;
     double tempCommonMaxModuleSpeed = Double.MAX_VALUE;
     for (SwerveModuleConstants modConst : modules) {
-      tempCommonMaxModuleSpeed = Math.min(tempCommonMaxModuleSpeed, modConst.SpeedAt12Volts); //@TODO this uses the 12v nominal speed because a direct max speed is not yet exposed
+      tempCommonMaxModuleSpeed = Math.min(tempCommonMaxModuleSpeed, modConst.SpeedAt12VoltsMps); //@TODO this uses the 12v nominal speed because a direct max speed is not yet exposed
     }
     commonMaxModuleSpeed = tempCommonMaxModuleSpeed;
     if (Utils.isSimulation()) {
       startSimThread();
     }
-    new BreakerSimSwerveDrivetrain(this, driveTrainConstants, modules);
     configPathPlanner();
     configChoreo();
   }
   
   private void telemetryCallbackWrapperFunction(SwerveDriveState state) {
-    chassisAccels = ChassisAccels.fromDeltaSpeeds(prevChassisSpeeds, state.Speeds, state.OdometryPeriod);
-    prevChassisSpeeds = state.Speeds;
+    chassisAccels = ChassisAccels.fromDeltaSpeeds(prevChassisSpeeds, state.speeds, state.OdometryPeriod);
+    prevChassisSpeeds = state.speeds;
     
-    BreakerLog.log("SwerveDrivetrain/State/Movement/Pose", state.Pose);
-    BreakerLog.log("SwerveDrivetrain/State/Movement/Speeds", state.Speeds);
-    BreakerLog.log("SwerveDrivetrain/State/Movement/Accels", chassisAccels);
-    BreakerLog.log("SwerveDrivetrain/State/ModuleStates/RealModuleStates", state.ModuleStates);
-    BreakerLog.log("SwerveDrivetrain/State/ModuleStates/TargetModuleStates", state.ModuleTargets);
-    BreakerLog.log("SwerveDrivetrain/State/Odometry/SuccessfulDAQs", state.SuccessfulDaqs);
-    BreakerLog.log("SwerveDrivetrain/State/Odometry/FailedDAQs", state.FailedDaqs);
-    BreakerLog.log("SwerveDrivetrain/State/Odometry/OdometryPeriod", state.OdometryPeriod);
+    BreakerLog.log("SwerveDrivetrain/State/Pose", state.Pose);
+    BreakerLog.log("SwerveDrivetrain/State/Speeds", state.speeds);
+    BreakerLog.log("SwerveDrivetrain/State/Accels", chassisAccels);
+    BreakerLog.log("SwerveDrivetrain/State/ModuleStates", state.ModuleStates);
+    BreakerLog.log("SwerveDrivetrain/State/TargetModuleStates", state.ModuleTargets);
+    BreakerLog.log("SwerveDrivetrain/State/SuccessfulDAQs", state.SuccessfulDaqs);
+    BreakerLog.log("SwerveDrivetrain/State/FailedDAQs", state.FailedDaqs);
+    BreakerLog.log("SwerveDrivetrain/State/OdometryPeriod", state.OdometryPeriod);
     
     if (userTelemetryCallback != null) {
       userTelemetryCallback.accept(state);
@@ -132,7 +121,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   private void lowFrequencyTelemetry() {
-    BreakerLog.log("SwerveDrivetrain/Modules", getModules());
+    BreakerLog.log("SwerveDrivetrain/Modules", Modules);
     BreakerLog.log("SwerveDrivetrain/Pigeon2", getPigeon2());
   }
   
@@ -148,89 +137,53 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
    *
    * @param telemetryFunction Function to call for telemetry or logging
    */
-  @Override
   public void registerTelemetry(Consumer<SwerveDriveState> telemetryFunction) {
     try {
-        stateLock.lock();
+        m_stateLock.writeLock().lock();
         userTelemetryCallback = telemetryFunction;
     } finally {
-        stateLock.unlock();
+        m_stateLock.writeLock().unlock();
     }
   }
 
   public ChassisAccels getChassisAccels() {
     try {
-      stateLock.lock();
+      m_stateLock.writeLock().lock();
       return chassisAccels;
     } finally {
-      stateLock.unlock();
+      m_stateLock.writeLock().unlock();
     }
   }
 
   public ChassisSpeeds getCurrentChassisSpeeds() {
-    return getKinematics().toChassisSpeeds(getState().ModuleStates);
+    return  m_kinematics.toChassisSpeeds(getState().ModuleStates);
   }
 
   public ChassisSpeeds getCurrentFieldRelitiveChassisSpeeds() {
-    return  BreakerMath.fromRobotRelativeSpeeds(getState().Speeds, getState().Pose.getRotation());
+    return  BreakerMath.fromRobotRelativeSpeeds(getState().speeds, getState().Pose.getRotation());
   }
 
   public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
     return run(() -> this.setControl(requestSupplier.get()));
   }
 
-   /**
-     * Takes the {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perpective direction
-     * and treats it as the forward direction for
-     * {@link SwerveRequest.ForwardPerspectiveValue#OperatorPerspective}.
-     * <p>
-     * If the operator is in the Blue Alliance Station, this should be 0 degrees.
-     * If the operator is in the Red Alliance Station, this should be 180 degrees.
-     * <p>
-     * This does not change the robot pose, which is in the
-     * {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perspective.
-     * As a result, the robot pose may need to be reset using {@link #resetPose}.
-     *
-     * @param fieldDirection Heading indicating which direction is forward from
-     *                       the {@link SwerveRequest.ForwardPerspectiveValue#BlueAlliance} perspective
-     */
-    @Override
-    public void setOperatorPerspectiveForward(Rotation2d fieldDirection) {
-      super.setOperatorPerspectiveForward(fieldDirection);
-      this.fieldDirection = fieldDirection;
-    }
-
-    public Rotation2d getOperatorPerspectiveForward() {
-      return fieldDirection;
-    }
-
-
   private void configPathPlanner() {
-    if (constants.pathplannerConfig.robotConfig.isPresent()) {
-      double driveBaseRadius = 0;
-      for (var moduleLocation : getModuleLocations()) {
-          driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
-      }
-
-      SwerveRequest.ApplyRobotSpeeds request = new SwerveRequest.ApplyRobotSpeeds();
-      request.DriveRequestType = DriveRequestType.Velocity;
-      BiConsumer<ChassisSpeeds, DriveFeedforwards> output = (ChassisSpeeds speeds, DriveFeedforwards feedforwards) -> {
-        request.Speeds = speeds;
-        request.WheelForceFeedforwardsX = feedforwards.robotRelativeForcesXNewtons();
-        request.WheelForceFeedforwardsY = feedforwards.robotRelativeForcesYNewtons();
-        setControl(request);
-      };
-
-      AutoBuilder.configure(
-        ()->this.getState().Pose, // Supplier of current robot pose
-        this::resetPose,  // Consumer for seeding pose against auto
-        this::getCurrentChassisSpeeds,
-        output, // Consumer of ChassisSpeeds to drive the robot
-        new PPHolonomicDriveController(constants.pathplannerConfig.translationPID, constants.pathplannerConfig.rotationPID),
-        constants.pathplannerConfig.robotConfig.get(),
-        () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
-        this); // Subsystem for requirements
+    double driveBaseRadius = 0;
+    for (var moduleLocation : m_moduleLocations) {
+        driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
     }
+    AutoBuilder.configureHolonomic(
+      ()->this.getState().Pose, // Supplier of current robot pose
+      this::seedFieldRelative,  // Consumer for seeding pose against auto
+      this::getCurrentChassisSpeeds,
+      (speeds)->this.setControl(autoRequest.withSpeeds(speeds)), // Consumer of ChassisSpeeds to drive the robot
+      new HolonomicPathFollowerConfig(constants.pathplannerConfig.translationPID,
+                                      constants.pathplannerConfig.rotationPID,
+                                      commonMaxModuleSpeed,
+                                      driveBaseRadius,
+                                      constants.pathplannerConfig.replanningConfig),
+      () -> DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red, // Assume the path needs to be flipped for Red vs Blue, this is normally the case
+      this); // Subsystem for requirements
   }
 
   private void configChoreo() {
@@ -240,7 +193,8 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     autoFactory = Choreo.createAutoFactory(
       this, 
       () -> this.getState().Pose, 
-      new BreakerSwerveChoreoController(this, x, y, r),
+      new BreakerSwerveChoreoController(x, y, r), 
+      (speeds)->this.setControl(autoRequest.withSpeeds(speeds)), 
       () -> {return DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red;}, 
       constants.choreoConfig.autoBindings, 
       this::logChoreoPath);
@@ -256,22 +210,26 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   private void startSimThread() {
-        // lastSimTime = Utils.getCurrentTimeSeconds();
+        lastSimTime = Utils.getCurrentTimeSeconds();
 
-        // /* Run simulation at a faster rate so PID gains behave more reasonably */
-        // simNotifier = new Notifier(() -> {
-        //     final double currentTime = Utils.getCurrentTimeSeconds();
-        //     double deltaTime = currentTime - lastSimTime;
-        //     lastSimTime = currentTime;
+        /* Run simulation at a faster rate so PID gains behave more reasonably */
+        simNotifier = new Notifier(() -> {
+            final double currentTime = Utils.getCurrentTimeSeconds();
+            double deltaTime = currentTime - lastSimTime;
+            lastSimTime = currentTime;
 
-        //     /* use the measured time delta, get battery voltage from WPILib */
-        //     updateSimState(deltaTime, RobotController.getBatteryVoltage());
-        // });
-        // simNotifier.startPeriodic(1.0/constants.simUpdateFrequency);
+            /* use the measured time delta, get battery voltage from WPILib */
+            updateSimState(deltaTime, RobotController.getBatteryVoltage());
+        });
+        simNotifier.startPeriodic(1.0/constants.simUpdateFrequency);
   }
 
-  public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, TeleopControlConfig teleopControlConfig) {
-    return new BreakerSwerveTeleopControl(this, x, y, omega, teleopControlConfig);
+  public Rotation2d getOperatorForwardDirection() {
+    return m_operatorForwardDirection;
+  }
+
+  public BreakerSwerveTeleopControl getTeleopControlCommand(BreakerInputStream x, BreakerInputStream y, BreakerInputStream omega, HeadingCompensationConfig headingCompensationConfig) {
+    return new BreakerSwerveTeleopControl(this, x, y, omega, headingCompensationConfig);
   }
 
   @Override
@@ -293,11 +251,6 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       
   }
 
-  @Override
-  public void simulationPeriodic() {
-      SimulatedArena.getInstance().simulationPeriodic();
-  }
-
   public static class BreakerSwerveDrivetrainConstants extends SwerveDrivetrainConstants {
     public double odometryUpdateFrequency = 250;
     public double simUpdateFrequency = 200;
@@ -305,15 +258,14 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
     public ChoreoConfig choreoConfig = new ChoreoConfig();
     public PathplannerConfig pathplannerConfig = new PathplannerConfig();
-    public MapleSimConfig simulationConfig = new MapleSimConfig();
 
     public BreakerSwerveDrivetrainConstants() {
       super();
     }
 
     @Override
-    public BreakerSwerveDrivetrainConstants withCANBusName(String name) {
-      this.CANBusName = name;
+    public BreakerSwerveDrivetrainConstants withCANbusName(String name) {
+      this.CANbusName = name;
       return this;
     }
 
@@ -354,7 +306,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       return this;
     }
 
-    public BreakerSwerveDrivetrainConstants withPathplannerConfig(PathplannerConfig pathplannerConfig) {
+    public BreakerSwerveDrivetrainConstants withChoreoConfig(PathplannerConfig pathplannerConfig) {
       this.pathplannerConfig = pathplannerConfig;
       return this;
     }
@@ -362,7 +314,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class ChoreoConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public AutoBindings autoBindings = new AutoBindings();
+      public ChoreoAutoBindings autoBindings = new ChoreoAutoBindings();
       public ChoreoConfig() {}
 
       public ChoreoConfig withTranslationPID(PIDConstants translationPID) {
@@ -375,7 +327,7 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         return this;
       }
 
-      public ChoreoConfig withAutoBindings(AutoBindings autoBindings) {
+      public ChoreoConfig withAutoBindings(ChoreoAutoBindings autoBindings) {
         this.autoBindings = autoBindings;
         return this;
       }
@@ -384,18 +336,8 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     public static class PathplannerConfig {
       public PIDConstants translationPID = new PIDConstants(10, 0, 0);
       public PIDConstants rotationPID = new PIDConstants(10, 0, 0);
-      public Optional<RobotConfig> robotConfig = getRobotConfigFromGUI();
-      public PathplannerConfig() {
-      }
-
-      private Optional<RobotConfig> getRobotConfigFromGUI() {
-        try {
-          return Optional.of(RobotConfig.fromGUISettings());
-        } catch(Exception e) {
-          DriverStation.reportError("Failed to load RobotConfig from PathPlanner GUI", true);
-          return Optional.empty();
-        }
-      }
+      public ReplanningConfig replanningConfig = new ReplanningConfig();
+      public PathplannerConfig() {}
 
 
       public PathplannerConfig withTranslationPID(PIDConstants translationPID) {
@@ -408,22 +350,8 @@ public class BreakerSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         return this;
       }
 
-      public PathplannerConfig withRobotConfig(RobotConfig robotConfig) {
-        this.robotConfig = Optional.of(robotConfig);
-        return this;
-      }
-    }
-
-    public static class MapleSimConfig {
-      public DCMotor driveMotor = DCMotor.getKrakenX60Foc(1);
-      public DCMotor steerMotor = DCMotor.getFalcon500Foc(1);
-      public double tireCoefficientOfFriction = 1.01;
-      public Mass robotMass = Units.Pound.of(100);
-      public Distance bumperLengthX = Units.Inches.of(35);
-      public Distance bumperWidthY = Units.Inches.of(35);
-
-      public MapleSimConfig withDriveMotor(DCMotor driveMotor) {
-        this.driveMotor = driveMotor;
+      public PathplannerConfig withReplanningConfig(ReplanningConfig replanningConfig) {
+        this.replanningConfig = replanningConfig;
         return this;
       }
     }

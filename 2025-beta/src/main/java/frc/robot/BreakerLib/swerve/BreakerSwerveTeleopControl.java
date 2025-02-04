@@ -16,11 +16,8 @@ import com.ctre.phoenix6.swerve.SwerveModule.ModuleRequest;
 import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import com.pathplanner.lib.config.PIDConstants;
-import com.pathplanner.lib.config.RobotConfig;
-import com.pathplanner.lib.util.DriveFeedforwards;
-import com.pathplanner.lib.util.swerve.SwerveSetpoint;
-import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+import frc.robot.BreakerLib.PIDConstants;
+
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -209,11 +206,11 @@ public class BreakerSwerveTeleopControl extends Command {
     private AngularVelocity angularVelocityDeadband;
     private Time omegaThresholdDelay;
     private PIDController pid;
-    public HeadingCompensationConfig(LinearVelocity minActiveLinearVelocity, AngularVelocity angularVelocityDeadband, Time omegaThresholdDelay, PIDConstants pidConstants) {
+    public HeadingCompensationConfig(LinearVelocity minActiveLinearVelocity, AngularVelocity angularVelocityDeadband, Time omegaThresholdDelay, double kP, double kI, double kD) {
       this.angularVelocityDeadband = angularVelocityDeadband;
       this.minActiveLinearVelocity = minActiveLinearVelocity;
       this.omegaThresholdDelay = omegaThresholdDelay;
-      pid = new PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD);
+      pid = new PIDController(kP, kI, kD);
       pid.enableContinuousInput(-Math.PI, Math.PI);
     }
 
