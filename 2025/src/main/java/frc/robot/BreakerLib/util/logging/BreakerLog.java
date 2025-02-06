@@ -2,15 +2,17 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot.BreakerLib.util.loging;
+package frc.robot.BreakerLib.util.logging;
 
 import java.util.ArrayList;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.CANdi;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.TalonFXS;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
@@ -20,6 +22,7 @@ import choreo.trajectory.TrajectorySample;
 import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
@@ -87,8 +90,8 @@ public class BreakerLog extends DogLog implements Subsystem {
 
     public static void log(String key, Trajectory<SwerveSample> value) {
         log(key + "/Poses", value.getPoses());
-        log(key + "/InitialSample", value.getInitialSample());
-        log(key + "/FinalSample", value.getFinalSample());
+        log(key + "/InitialSample", value.getInitialSample(false).orElse(new SwerveSample(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, new double[4], new double[4])));
+        log(key + "/FinalSample", value.getFinalSample(false).orElse(new SwerveSample(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, new double[4], new double[4])));
         log(key + "/TotalTime", value.getTotalTime());
     }
 
@@ -97,6 +100,13 @@ public class BreakerLog extends DogLog implements Subsystem {
         log(key + "/ChassisSpeeds", new ChassisSpeeds(value.vx, value.vy, value.omega));
         log(key + "/ChassisAccels", new ChassisAccels(value.ax, value.ay, value.alpha));
         log(key + "/Timestamp", value.t);
+    }
+
+    public static void log(String key, TalonFXS value) {
+        log(key + "/StatorCurrent", value.getStatorCurrent().getValueAsDouble());
+        log(key + "/SupplyCurrent", value.getSupplyCurrent().getValueAsDouble());
+        log(key + "/Position", value.getPosition().getValueAsDouble());
+        log(key + "/Velocity", value.getVelocity().getValueAsDouble());
     }
 
     public static void log(String key, TalonFX value) {
@@ -125,13 +135,14 @@ public class BreakerLog extends DogLog implements Subsystem {
         log(key + "/Accelerometer/Z", value.getAccelerationZ().getValueAsDouble());
     }
 
-    public static void log(String key, SwerveModule value) {
+    public static void log(String key, SwerveModule<TalonFX, TalonFX, CANcoder> value) {
         log(key + "/DriveMotor", value.getDriveMotor());
         log(key + "/SteerMotor", value.getSteerMotor());
-        log(key + "/SteerEncoder", value.getCANcoder());
+        log(key + "/SteerEncoder", value.getEncoder());
     }
 
-    public static void log(String key, SwerveModule... value) {
+    @SafeVarargs
+    public static void log(String key, SwerveModule<TalonFX, TalonFX, CANcoder>... value) {
         for (int i = 0; i < value.length; i++) {
             log(key + "/" + i, value[i]);
         }
@@ -152,6 +163,13 @@ public class BreakerLog extends DogLog implements Subsystem {
         log(key + "/IsActive", value.get());
         log(key + "/Text", value.getText());
         log(key + "/Type", value.getType());
+    }
+
+    public static void log(String key, ProfiledPIDController value) {
+        log(key + "/PositionError", value.getPositionError());
+        log(key + "/VelocityError", value.getVelocityError());
+        log(key + "/SetPosition", value.getSetpoint().position);
+        log(key + "/SetVelocity", value.getSetpoint().velocity);
     }
 
     public static void addCANBus(CANBus value) {

@@ -1,4 +1,4 @@
-package frc.robot.BreakerLib.util.loging;
+package frc.robot.BreakerLib.util.logging;
 
 import edu.wpi.first.wpilibj.Alert;
 

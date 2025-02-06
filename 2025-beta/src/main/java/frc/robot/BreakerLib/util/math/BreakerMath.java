@@ -1,11 +1,6 @@
 package frc.robot.BreakerLib.util.math;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
-
-import javax.lang.model.type.MirroredTypeException;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.CoordinateAxis;
@@ -15,7 +10,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 import frc.robot.BreakerLib.physics.BreakerVector3;
 

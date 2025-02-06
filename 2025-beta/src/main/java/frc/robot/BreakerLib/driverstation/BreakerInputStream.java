@@ -9,9 +9,7 @@ import java.util.function.DoubleUnaryOperator;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import frc.robot.BreakerLib.util.loging.BreakerLog;
+import frc.robot.BreakerLib.util.logging.BreakerLog;
 
 /** Add your docs here. */
 public interface BreakerInputStream extends DoubleSupplier {

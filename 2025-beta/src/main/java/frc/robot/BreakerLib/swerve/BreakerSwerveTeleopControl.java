@@ -13,11 +13,16 @@ import javax.print.DocPrintJob;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModule.ModuleRequest;
+import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import frc.robot.BreakerLib.PIDConstants;
-
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.swerve.SwerveSetpoint;
+import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -33,7 +38,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
 import frc.robot.BreakerLib.physics.BreakerVector2;
-import frc.robot.BreakerLib.util.loging.BreakerLog;
+import frc.robot.BreakerLib.util.logging.BreakerLog;
 
 public class BreakerSwerveTeleopControl extends Command {
   /** Creates a new BreakerSwerveTeleopControl. */
@@ -43,10 +48,10 @@ public class BreakerSwerveTeleopControl extends Command {
   private TeleopControlConfig teleopControlConfig;
   private Rotation2d headingSetpoint;
   private DelayedInputThresholdMonitor omegaThresholdMonitor;
-  // private Optional<SwerveSetpointGenerator> setpointGenerator;
+  private Optional<SwerveSetpointGenerator> setpointGenerator;
 
   private double lastTimestamp;
-  // private SwerveSetpoint prevSetpoint;
+  private SwerveSetpoint prevSetpoint;
   /**
     Creates a BreakerSwerveTeleopControl command
     @param drivetrain
@@ -64,18 +69,18 @@ public class BreakerSwerveTeleopControl extends Command {
     this.omega = omega;
     this.teleopControlConfig = teleopControlConfig;
     request = new SwerveRequest.FieldCentric().withDriveRequestType(DriveRequestType.Velocity);
-    // if (teleopControlConfig.getSetpointGenerationConfig().isPresent()) {
-      // SetpointGenerationConfig generationConfig = teleopControlConfig.getSetpointGenerationConfig().get();
-      // if (generationConfig.getRobotConfig().isPresent()) {
-        // setpointGenerator = Optional.of(new SwerveSetpointGenerator(generationConfig.getRobotConfig().get(), generationConfig.getMaxModuleAzimuthVelocity()));
-      // } else if (drivetrain.constants.pathplannerConfig.robotConfig.isPresent()) {
-        // setpointGenerator = Optional.of(new SwerveSetpointGenerator(drivetrain.constants.pathplannerConfig.robotConfig.get(), generationConfig.getMaxModuleAzimuthVelocity()));
-      // } else {
-        // setpointGenerator = Optional.empty();
-      // }
-    // } else {
-      // setpointGenerator = Optional.empty();
-    // }
+    if (teleopControlConfig.getSetpointGenerationConfig().isPresent()) {
+      SetpointGenerationConfig generationConfig = teleopControlConfig.getSetpointGenerationConfig().get();
+      if (generationConfig.getRobotConfig().isPresent()) {
+        setpointGenerator = Optional.of(new SwerveSetpointGenerator(generationConfig.getRobotConfig().get(), generationConfig.getMaxModuleAzimuthVelocity()));
+      } else if (drivetrain.constants.pathplannerConfig.robotConfig.isPresent()) {
+        setpointGenerator = Optional.of(new SwerveSetpointGenerator(drivetrain.constants.pathplannerConfig.robotConfig.get(), generationConfig.getMaxModuleAzimuthVelocity()));
+      } else {
+        setpointGenerator = Optional.empty();
+      }
+    } else {
+      setpointGenerator = Optional.empty();
+    }
 
     if (teleopControlConfig.headingCompensationConfig.isPresent()) {
       HeadingCompensationConfig headingCompensationConfig = teleopControlConfig.getHeadingCompensationConfig().get();
@@ -90,7 +95,7 @@ public class BreakerSwerveTeleopControl extends Command {
   public void initialize() {
     headingSetpoint = drivetrain.getPigeon2().getRotation2d();
     lastTimestamp = Timer.getFPGATimestamp();
-    // prevSetpoint = new SwerveSetpoint(drivetrain.getState().Speeds, drivetrain.getState().ModuleStates, DriveFeedforwards.zeros(drivetrain.getState().ModuleStates.length));
+    prevSetpoint = new SwerveSetpoint(drivetrain.getState().Speeds, drivetrain.getState().ModuleStates, DriveFeedforwards.zeros(drivetrain.getState().ModuleStates.length));
     //drivetrain.setControl(new SwerveRequest.ApplyRobotSpeeds());
   }
 
@@ -109,35 +114,35 @@ public class BreakerSwerveTeleopControl extends Command {
       }
     }
 
-    // if (setpointGenerator.isPresent()) {
-      // double curTimestamp = Timer.getFPGATimestamp();
-      // BreakerVector2 linVec = new BreakerVector2(xImpt, yImpt);
-      // linVec.rotateBy(drivetrain.getOperatorPerspectiveForward());
-      // xImpt = linVec.getX();
-      // yImpt = linVec.getY();
-      // ChassisSpeeds desiredSpeeds = new ChassisSpeeds(xImpt, yImpt, omegaImpt);
-      // desiredSpeeds.toFieldRelativeSpeeds(drivetrain.getState().Pose.getRotation());
-      // SwerveSetpoint curSetpoint = setpointGenerator.get().generateSetpoint(prevSetpoint, desiredSpeeds, curTimestamp - lastTimestamp);
-      // SwerveModuleState[] moduleStates = curSetpoint.moduleStates();
-      // double[] robotRelativeForcesXNewtons = curSetpoint.feedforwards().robotRelativeForcesXNewtons();
-      // double[] robotRelativeForcesYNewtons = curSetpoint.feedforwards().robotRelativeForcesYNewtons();
-      // BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", curSetpoint.robotRelativeSpeeds());
-      // for (int i = 0; i < curSetpoint.moduleStates().length; i++) {
-        // SwerveModule module = drivetrain.getModule(i);
-        // module.apply(new ModuleRequest()
-        // .withDriveRequest(DriveRequestType.Velocity)
-        // .withState(moduleStates[i])
-        // .withWheelForceFeedforwardX(robotRelativeForcesXNewtons[i])
-        // .withWheelForceFeedforwardY(robotRelativeForcesYNewtons[i])
-        // );
-      // }
-      // lastTimestamp = curTimestamp;
-      // prevSetpoint = curSetpoint;
-    // } else {
+    if (setpointGenerator.isPresent()) {
+      double curTimestamp = Timer.getFPGATimestamp();
+      BreakerVector2 linVec = new BreakerVector2(xImpt, yImpt);
+      linVec.rotateBy(drivetrain.getOperatorPerspectiveForward());
+      xImpt = linVec.getX();
+      yImpt = linVec.getY();
+      ChassisSpeeds desiredSpeeds = new ChassisSpeeds(xImpt, yImpt, omegaImpt);
+      desiredSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(desiredSpeeds, drivetrain.getState().Pose.getRotation());
+      SwerveSetpoint curSetpoint = setpointGenerator.get().generateSetpoint(prevSetpoint, desiredSpeeds, curTimestamp - lastTimestamp);
+      SwerveModuleState[] moduleStates = curSetpoint.moduleStates();
+      double[] robotRelativeForcesXNewtons = curSetpoint.feedforwards().robotRelativeForcesXNewtons();
+      double[] robotRelativeForcesYNewtons = curSetpoint.feedforwards().robotRelativeForcesYNewtons();
+      BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", curSetpoint.robotRelativeSpeeds());
+      for (int i = 0; i < curSetpoint.moduleStates().length; i++) {
+        SwerveModule<TalonFX, TalonFX, CANcoder> module = drivetrain.getModule(i);
+        module.apply(new ModuleRequest()
+        .withDriveRequest(DriveRequestType.Velocity)
+        .withState(moduleStates[i])
+        .withWheelForceFeedforwardX(robotRelativeForcesXNewtons[i])
+        .withWheelForceFeedforwardY(robotRelativeForcesYNewtons[i])
+        );
+      }
+      lastTimestamp = curTimestamp;
+      prevSetpoint = curSetpoint;
+    } else {
       request.withVelocityX(xImpt).withVelocityY(yImpt).withRotationalRate(omegaImpt);
       BreakerLog.log("SwerveTeleopControlCommand/CommandedSpeeds", new ChassisSpeeds(request.VelocityX, request.VelocityY, request.RotationalRate));
       drivetrain.setControl(request);
-    // }
+    }
   }
 
   // Called once the command ends or is interrupted.
@@ -152,54 +157,54 @@ public class BreakerSwerveTeleopControl extends Command {
 
   public static class TeleopControlConfig {
     private Optional<HeadingCompensationConfig> headingCompensationConfig = Optional.empty();
-    // private Optional<SetpointGenerationConfig> setpointGenerationConfig = Optional.empty();
+    private Optional<SetpointGenerationConfig> setpointGenerationConfig = Optional.empty();
 
     public TeleopControlConfig withHeadingCompensation(HeadingCompensationConfig headingCompensationConfig) {
       this.headingCompensationConfig = Optional.of(headingCompensationConfig);
       return this;
     }
 
-    // public TeleopControlConfig withSetpointGeneration(SetpointGenerationConfig setpointGenerationConfig) {
-      // this.setpointGenerationConfig = Optional.of(setpointGenerationConfig);
-      // return this;
-    // }
+    public TeleopControlConfig withSetpointGeneration(SetpointGenerationConfig setpointGenerationConfig) {
+      this.setpointGenerationConfig = Optional.of(setpointGenerationConfig);
+      return this;
+    }
 
     public Optional<HeadingCompensationConfig> getHeadingCompensationConfig() {
         return headingCompensationConfig;
     }
 
-    // public Optional<SetpointGenerationConfig> getSetpointGenerationConfig() {
-        // return setpointGenerationConfig;
-    // }
+    public Optional<SetpointGenerationConfig> getSetpointGenerationConfig() {
+        return setpointGenerationConfig;
+    }
   }
 
-  // public static class SetpointGenerationConfig {
-    // private Optional<RobotConfig> robotConfig;
-    // private AngularVelocity maxModuleAzimuthVelocity;
+  public static class SetpointGenerationConfig {
+    private Optional<RobotConfig> robotConfig;
+    private AngularVelocity maxModuleAzimuthVelocity;
 
-    // public SetpointGenerationConfig(AngularVelocity maxModuleAzimuthVelocity) {
-      // this.maxModuleAzimuthVelocity = maxModuleAzimuthVelocity;
-      // robotConfig = Optional.empty();
-    // }
+    public SetpointGenerationConfig(AngularVelocity maxModuleAzimuthVelocity) {
+      this.maxModuleAzimuthVelocity = maxModuleAzimuthVelocity;
+      robotConfig = Optional.empty();
+    }
 
-    // public SetpointGenerationConfig(RobotConfig robotConfig, AngularVelocity maxModuleAzimuthVelocity) {
-      // this(maxModuleAzimuthVelocity);
-      // this.robotConfig = Optional.of(robotConfig);
-    // }
+    public SetpointGenerationConfig(RobotConfig robotConfig, AngularVelocity maxModuleAzimuthVelocity) {
+      this(maxModuleAzimuthVelocity);
+      this.robotConfig = Optional.of(robotConfig);
+    }
 
-    // public SetpointGenerationConfig withRobotConfig(RobotConfig robotConfig) {
-      // this.robotConfig = Optional.of(robotConfig);
-      // return this;
-    // }
+    public SetpointGenerationConfig withRobotConfig(RobotConfig robotConfig) {
+      this.robotConfig = Optional.of(robotConfig);
+      return this;
+    }
 
-    // public Optional<RobotConfig> getRobotConfig(){
-      // return robotConfig;
-    // }
+    public Optional<RobotConfig> getRobotConfig(){
+      return robotConfig;
+    }
 
-    // public AngularVelocity getMaxModuleAzimuthVelocity() {
-        // return maxModuleAzimuthVelocity;
-    // }
-  // }
+    public AngularVelocity getMaxModuleAzimuthVelocity() {
+        return maxModuleAzimuthVelocity;
+    }
+  }
 
   public static class HeadingCompensationConfig {
     private LinearVelocity minActiveLinearVelocity;
@@ -210,7 +215,7 @@ public class BreakerSwerveTeleopControl extends Command {
       this.angularVelocityDeadband = angularVelocityDeadband;
       this.minActiveLinearVelocity = minActiveLinearVelocity;
       this.omegaThresholdDelay = omegaThresholdDelay;
-      pid = new PIDController(pidConstants.kP(), pidConstants.kI(), pidConstants.kD());
+      pid = new PIDController(pidConstants.kP, pidConstants.kI, pidConstants.kD);
       pid.enableContinuousInput(-Math.PI, Math.PI);
     }
 

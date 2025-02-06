@@ -8,8 +8,6 @@ import java.util.Map.Entry;
 
 import edu.wpi.first.math.interpolation.Interpolatable;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
-import edu.wpi.first.util.InterpolatingTreeMap;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;

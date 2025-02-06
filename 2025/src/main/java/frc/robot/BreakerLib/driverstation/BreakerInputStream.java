@@ -9,8 +9,7 @@ import java.util.function.DoubleUnaryOperator;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.filter.SlewRateLimiter;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTableInstance;
+import frc.robot.BreakerLib.util.logging.BreakerLog;
 
 /** Add your docs here. */
 public interface BreakerInputStream extends DoubleSupplier {
@@ -172,11 +171,10 @@ public interface BreakerInputStream extends DoubleSupplier {
    * @param key The NetworkTables key to publish to.
    * @return A stream with the same output as this one.
    */
-  public default BreakerInputStream publish(String key) {
-    DoublePublisher pub = NetworkTableInstance.getDefault().getDoubleTopic(key).publish();
+  public default BreakerInputStream log(String key) {
     return () -> {
       double val = this.get();
-      pub.set(val);
+      BreakerLog.log(key, val);
       return val;
     };
   }

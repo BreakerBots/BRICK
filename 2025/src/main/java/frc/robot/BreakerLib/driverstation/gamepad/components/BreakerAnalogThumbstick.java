@@ -7,14 +7,14 @@ package frc.robot.BreakerLib.driverstation.gamepad.components;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.GenericHID;
 import frc.robot.BreakerLib.driverstation.BreakerInputStream;
+import frc.robot.BreakerLib.driverstation.BreakerInputStream2d;
 import frc.robot.BreakerLib.physics.BreakerVector2;
 
 /** Class which represents an analog HID thumbstick. */
-public class BreakerAnalogThumbstick  {
+public class BreakerAnalogThumbstick implements BreakerInputStream2d  {
     private GenericHID hid;
     private int xAxisPort, yAxisPort;
     private boolean invertX, invertY;
-    private double deadband = 0.0;
     private BreakerInputStream streamX;
     private BreakerInputStream streamY;
     
@@ -45,18 +45,8 @@ public class BreakerAnalogThumbstick  {
         this.yAxisPort = yAxisPort;
         this.invertX = invertX;
         this.invertY = invertY;
-        deadband = 0.0;
-        streamX = () -> getX();
-        streamY = () -> getY();
-    }
 
-    /** Set stick deadbands.
-     * 
-     * @param deadband Magnitude deadband for stick reading vector.
-     */
-    public void setDeadband(double deadband) {
-        this.deadband = deadband;
-    }
+        }
 
     /** @return Raw X-axis value. */
     public double getRawX() {
@@ -72,31 +62,13 @@ public class BreakerAnalogThumbstick  {
         return new BreakerVector2(getRawX(), getRawY());
     }
 
-    public BreakerVector2 getVector() {
-        BreakerVector2 vec = new BreakerVector2(getRawX() * (invertX ? -1 : 1), getRawY() * (invertY ? -1 : 1));
-        return new BreakerVector2(vec.getAngle(), MathUtil.applyDeadband(vec.getMagnitude(), deadband));
-    }
-
-    /** @return X-axis value. */
-    public double getX() {
-        return getVector().getX();
-    }
-
-    /** @return Y-axis value. */
-    public double getY() {
-        return getVector().getY();
-    }
-
-    public BreakerInputStream getStreamX() {
-        return streamX;
-    }
-
-    public BreakerInputStream getStreamY() {
-        return streamY;
-    }
-
     /** @return If stick inputs outside of the deadband are detected. */
     public boolean isActive() {
-        return (getY() != 0 || getX() !=0);
+        return (!MathUtil.isNear(getY().get(), 0.0, 1e-5) || !MathUtil.isNear(getY().get(), 0.0, 1e-5));
+    }
+
+    @Override
+    public BreakerVector2 get() {
+        return new BreakerVector2(getRawX() * (invertX ? -1 : 1), getRawY() * (invertY ? -1 : 1));
     }
 }

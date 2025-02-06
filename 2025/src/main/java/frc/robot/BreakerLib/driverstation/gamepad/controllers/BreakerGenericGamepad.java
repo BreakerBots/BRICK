@@ -6,7 +6,6 @@ import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import frc.robot.BreakerLib.driverstation.gamepad.components.BreakerAnalogTrigger;
 import frc.robot.BreakerLib.driverstation.gamepad.components.BreakerDPad;
 import frc.robot.BreakerLib.driverstation.gamepad.components.BreakerFaceButtons;
-import frc.robot.BreakerLib.driverstation.gamepad.components.BreakerGamepadAnalogDeadbandConfig;
 import frc.robot.BreakerLib.driverstation.gamepad.components.BreakerGamepadThumbstick;
 
 /** BreakerLib gamepad interface. */
@@ -38,7 +37,8 @@ public class BreakerGenericGamepad {
             int leftTriggerAxisPort,
             int rightTriggerAxisPort,
             int leftBumperPort,
-            int rightBumperPort) {
+            int rightBumperPort
+            ) {
 
         this.hid = hid;
         faceButtons = new BreakerFaceButtons(hid, upFaceButtonPort, leftFaceButtonPort,
@@ -52,18 +52,6 @@ public class BreakerGenericGamepad {
         leftBumper = new JoystickButton(hid, leftBumperPort);
         rightBumper = new JoystickButton(hid, rightBumperPort);
         dPad = new BreakerDPad(hid);
-    }
-
-    /**
-     * Configures all analog deadbands.
-     * 
-     * @param deadbandConfig List of deadbands.
-     */
-    public void configDeadbands(BreakerGamepadAnalogDeadbandConfig deadbandConfig) {
-        leftJoystick.setDeadband(deadbandConfig.getLeftStick());
-        rightJoystick.setDeadband(deadbandConfig.getRightStick());
-        leftTrigger.setDeadband(deadbandConfig.getLeftTriggerAxis());
-        rightTrigger.setDeadband(deadbandConfig.getRightTriggerAxis());
     }
 
     /**

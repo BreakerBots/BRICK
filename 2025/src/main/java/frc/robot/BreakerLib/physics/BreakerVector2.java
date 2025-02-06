@@ -5,18 +5,12 @@
 package frc.robot.BreakerLib.physics;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
-import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
-import edu.wpi.first.math.numbers.N3;
 import frc.robot.BreakerLib.util.math.interpolation.BreakerInterpolable;
 
 /**
@@ -159,6 +153,10 @@ public class BreakerVector2 implements BreakerInterpolable<BreakerVector2> {
      */
     public BreakerVector2 div(double scalar) {
         return new BreakerVector2(x / scalar,  y / scalar);
+    }
+
+    public BreakerVector2 pow(double exponent)  {
+        return new BreakerVector2(vectorRotation, Math.pow(magnitude, exponent));
     }
     
     

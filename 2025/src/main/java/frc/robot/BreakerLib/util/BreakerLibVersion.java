@@ -4,9 +4,7 @@
 
 package frc.robot.BreakerLib.util;
 
-import edu.wpi.first.wpilibj.util.WPILibVersion;
-
 /** Add your docs here. */
 public class BreakerLibVersion {
-    public static final String version = "2024.2";
+    public static final String version = "2025.1";
 }

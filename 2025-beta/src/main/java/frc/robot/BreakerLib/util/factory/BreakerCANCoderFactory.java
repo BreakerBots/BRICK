@@ -5,7 +5,6 @@
 package frc.robot.BreakerLib.util.factory;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.signals.SensorDirectionValue;

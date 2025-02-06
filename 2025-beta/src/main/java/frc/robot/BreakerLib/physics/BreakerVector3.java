@@ -5,14 +5,10 @@
 package frc.robot.BreakerLib.physics;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.numbers.N3;
 import frc.robot.BreakerLib.util.math.interpolation.BreakerInterpolable;
 

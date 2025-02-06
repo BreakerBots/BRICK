@@ -4,8 +4,6 @@
 
 package frc.robot.BreakerLib.util;
 
-import edu.wpi.first.units.Measure;
-
 /** Add your docs here. */
 public class MechanismRatio {
     private final double ratioToOne;
