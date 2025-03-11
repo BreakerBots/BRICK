@@ -1,6 +1,6 @@
 {
- "name":"Choreo",
- "version":"v2025.0.0",
+ "name":"choreo",
+ "version":1,
  "type":"Swerve",
  "variables":{
   "expressions":{},
@@ -9,60 +9,64 @@
  "config":{
   "frontLeft":{
    "x":{
-    "exp":"9.84 in",
-    "val":0.249936
+    "exp":"10.875 in",
+    "val":0.276225
    },
    "y":{
-    "exp":"9.84 in",
-    "val":0.249936
+    "exp":"10.828 in",
+    "val":0.2750312
    }
   },
   "backLeft":{
    "x":{
-    "exp":"-9.84 in",
-    "val":-0.249936
+    "exp":"-10.875 in",
+    "val":-0.276225
    },
    "y":{
-    "exp":"9.84 in",
-    "val":0.249936
+    "exp":"10.875 in",
+    "val":0.276225
    }
   },
   "mass":{
-   "exp":"61 kg",
-   "val":61.0
+   "exp":"140.393 lbs",
+   "val":63.68119360141
   },
   "inertia":{
-   "exp":"4 kg m ^ 2",
-   "val":4.0
+   "exp":"7 kg m ^ 2",
+   "val":7.0
   },
   "gearing":{
-   "exp":"6.5",
-   "val":6.5
+   "exp":"7.13",
+   "val":7.13
   },
   "radius":{
    "exp":"2 in",
    "val":0.0508
   },
   "vmax":{
-   "exp":"502.65482457436696 rad / s",
-   "val":502.65482457436696
+   "exp":"5800 RPM",
+   "val":607.3745796940267
   },
   "tmax":{
-   "exp":"1.549726775956284 N m",
-   "val":1.549726775956284
+   "exp":"1.552 N * m",
+   "val":1.552
+  },
+  "cof":{
+   "exp":"1",
+   "val":1.0
   },
   "bumper":{
    "front":{
-    "exp":"25 in",
-    "val":0.635
+    "exp":"16.5 in",
+    "val":0.4191
    },
    "side":{
-    "exp":"25 in",
-    "val":0.635
+    "exp":"16.5 in",
+    "val":0.4191
    },
    "back":{
-    "exp":"25 in",
-    "val":0.635
+    "exp":"16.5 in",
+    "val":0.4191
    }
   },
   "differentialTrackWidth":{

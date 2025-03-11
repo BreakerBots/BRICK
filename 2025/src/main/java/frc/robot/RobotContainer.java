@@ -41,11 +41,13 @@ import frc.robot.BreakerLib.util.logging.BreakerLog;
 import frc.robot.BreakerLib.util.logging.BreakerLog.Metadata;
 import frc.robot.BreakerLib.util.math.functions.BreakerLinearizedConstrainedExponential;
 import frc.robot.Constants.*;
+import frc.robot.commands.Autos;
 import frc.robot.subsystems.Drivetrain;
 
 public class RobotContainer {
   private final BreakerXboxController controller = new BreakerXboxController(Constants.OperatorConstants.CONTROLLER_PORT);
   private final Drivetrain drivetrain = new Drivetrain();
+  private final Autos autos = new Autos(drivetrain);
 
   private BreakerInputStream driverX, driverY, driverOmega;
   public RobotContainer() {
@@ -91,6 +93,7 @@ public class RobotContainer {
     //   drivetrain.resetPose(traj.getInitialPose(DriverStation.getAlliance().orElse(Alliance.Blue)==Alliance.Red));
     //   return autofactory.trajectory(traj, autofactory.voidLoop()).cmd();
     // }
-    return Commands.print("uh oh choreo auto failed");
+    // return Commands.print("uh oh choreo auto failed");
+    return autos.getSelectedAuto();
   }
 }
