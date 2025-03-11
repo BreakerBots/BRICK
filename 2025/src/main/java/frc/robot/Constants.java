@@ -23,8 +23,22 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 // import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.PIDConstants;
 
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.MatBuilder;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Nat;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
@@ -41,10 +55,14 @@ import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.HeadingCompensatio
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.SetpointGenerationConfig;
 import frc.robot.BreakerLib.swerve.BreakerSwerveTeleopControl.TeleopControlConfig;
 import frc.robot.BreakerLib.util.logging.BreakerLog.GitInfo;
+import frc.robot.commands.AutoPilot.NavToPoseConfig;
+import frc.robot.commands.AutoPilot.ProfiledPIDControllerConfig;
 
 import static edu.wpi.first.units.Units.*;
 import static frc.robot.Constants.DriveConstants.BackLeft;
 import static frc.robot.Constants.DriveConstants.MAXIMUM_MODULE_AZIMUTH_SPEED;
+
+import org.photonvision.simulation.SimCameraProperties;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -55,6 +73,100 @@ import static frc.robot.Constants.DriveConstants.MAXIMUM_MODULE_AZIMUTH_SPEED;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+    public static class ApriltagVisionConstants {
+      public static final String kTopLeftCameraName = "top_left";
+      public static final String kTopRightCameraName = "top_right";
+      public static final String kBottomLeftCameraName = "bottom_left";
+      public static final String kBottomRightCameraName = "bottom_right";
+
+      public static final Transform3d kTopLeftCameraTransform = new Transform3d(new Translation3d(Inches.of(-9.48),Inches.of(10.54),Inches.of(37.486).plus(Inches.of(1.544))), new Rotation3d(Degrees.of(0), Degrees.of(-15),Degrees.of(145)));
+      public static final Transform3d kTopRightCameraTransform = new Transform3d(new Translation3d(Inches.of(-9.48),Inches.of(-10.54),Inches.of(37.486).plus(Inches.of(1.544))), new Rotation3d(Degrees.of(0), Degrees.of(-15),Degrees.of(-145)));
+      public static final Transform3d kBottomLeftCameraTransform = new Transform3d(new Translation3d(Inches.of(-11.642),Inches.of(10.425),Inches.of(6.761).plus(Inches.of(1.544))), new Rotation3d(Degrees.of(0), Degrees.of(-20),Degrees.of(-170).plus(Degrees.of(5))));//10.425 //Degrees.of(-165).minus(Degrees.of(2.5))//25
+      public static final Transform3d kBottomRightCameraTransform = new Transform3d(new Translation3d(Inches.of(-11.642),Inches.of(-10.425),Inches.of(6.761).plus(Inches.of(1.544))), new Rotation3d(Degrees.of(0), Degrees.of(-20), Degrees.of(170).minus(Degrees.of(5))));//-10.425//Degrees.of(165).plus(Degrees.of(2.5))//25
+
+      public static final SimCameraProperties kBottomLeftCameraSimProperties = getThriftyCam()
+        .setCalibError(0.9, 0.001)
+        .setFPS(40)
+        .setAvgLatencyMs(35)
+        .setLatencyStdDevMs(3);
+
+      public static final SimCameraProperties kBottomRightCameraSimProperties =
+        getThriftyCam()
+        .setCalibError(0.9, 0.001)
+        .setFPS(40)
+        .setAvgLatencyMs(35)
+        .setLatencyStdDevMs(3);
+
+      
+      public static final Distance kMaxTrigSolveTagDist = Meters.of(2.5);
+      public static final Matrix<N3, N1> kTrigBaseStdDevs = VecBuilder.fill(0.5, 0.5, 15);
+      public static final double kTrigDevScaleFactor = 5;
+
+      public static SimCameraProperties getThriftyCam() {
+        return new SimCameraProperties()
+        .setCalibration(
+          1600, 
+          1304,
+          MatBuilder.fill(
+            Nat.N3(), 
+            Nat.N3(), 
+            1380.278298417611,
+            0.0,
+            812.9866295000404,
+            0.0,
+            1379.4771633563626,
+            713.7349392103608,
+            0.0,
+            0.0,
+            1.0
+            ),
+          VecBuilder.fill(
+            -0.023583816443651925,
+            -0.013927876662786186,
+            -5.265726756324146E-4,
+            -1.1610575615885912E-4,
+            0.03363075302770153,
+            4.900879121679141E-4,
+            2.539986658798725E-4,
+            -0.0012091457686458247
+          )
+        );
+      }
+      
+    }
+
+    public static class FieldConstants {
+      // public static final AprilTagFieldLayout kAprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
+      public static final AprilTagFieldLayout kAprilTagFieldLayout = null;
+        public static final Distance kReefBranchOffsetFromFaceApriltagStrafe = Inches.of(6.47);
+        public static final Distance kReefFaceLength = Inches.of(36.792600);
+    }
+
+    public static class AutoPilotConstants {
+      public static final Distance kReefAutoAllignOffsetFromReefFace = Inches.of(24);
+
+      public static final  ProfiledPIDControllerConfig kDefaultTranslationConfig = new ProfiledPIDControllerConfig(4.5, 0.001, 0, new Constraints(1.0, 1.5));
+      public static final  ProfiledPIDControllerConfig kDefaultRotationConfig = new ProfiledPIDControllerConfig(3.5, 0, 0, new Constraints(2.0, 5.0));
+
+      public static final NavToPoseConfig kDefaultNavToPoseConfig = new NavToPoseConfig(
+        true,
+        new Pose2d(0.025, 0.025, Rotation2d.fromDegrees(2)),
+        new ChassisSpeeds(0.15, 0.15, 0.015), 
+        kDefaultTranslationConfig, 
+        kDefaultTranslationConfig, 
+        kDefaultRotationConfig);
+
+      public static final  ProfiledPIDControllerConfig kAutoTranslationConfig = new ProfiledPIDControllerConfig(4.4, 0.001, 0, new Constraints(1.5, 3));
+      public static final  ProfiledPIDControllerConfig kAutoRotationConfig = new ProfiledPIDControllerConfig(3.5, 0, 0, new Constraints(2.0, 5.0));
+
+      public static final NavToPoseConfig kAutoNavToPoseConfig = new NavToPoseConfig(
+        true,
+        new Pose2d(0.025, 0.025, Rotation2d.fromDegrees(2)),
+        new ChassisSpeeds(0.15, 0.15, 0.015), 
+        kAutoTranslationConfig, 
+        kAutoTranslationConfig, 
+        kAutoRotationConfig);
+    }
 
   public static class GeneralConstants {
     public static final CANBus DRIVE_CANIVORE_BUS = new CANBus("drive_canivore");
